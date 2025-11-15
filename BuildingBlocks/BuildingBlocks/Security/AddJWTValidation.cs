@@ -32,19 +32,52 @@ public static class AddJwtValidation
                 OnTokenValidated = context =>
                 {
                     if (context.Principal?.Identity is not ClaimsIdentity claimsIdentity) return Task.CompletedTask;
-                    
-                    var resourceAccessClaim = context.Principal?.FindFirst("resource_access");
-                    if (resourceAccessClaim is null) return Task.CompletedTask;
-                        
-                    var resourceAccess = JsonNode.Parse(resourceAccessClaim.Value);
-                        
-                    var roles = resourceAccess?[authConfig.ClientId]?["roles"]?.AsArray();
-                    if (roles is null) return Task.CompletedTask;
-                    
-                    foreach (var role in roles)
+
+                    var resourceAccess = context?.Principal?.FindFirst("resource_access")?.Value;                      
+                    if (!string.IsNullOrWhiteSpace(resourceAccess))
                     {
-                        claimsIdentity.AddClaim(new Claim(ClaimTypes.Role, role?.ToString()!));
+                        try
+                        {
+                            var parsed = JsonNode.Parse(resourceAccess);
+                            var clientId = authConfig.ClientId;
+                            var roles = parsed?[clientId]?["roles"]?.AsArray();
+                            if (roles != null)
+                            {
+                                foreach (var r in roles)
+                                {
+                                    var roleName = r?.ToString();
+                                    if (!string.IsNullOrWhiteSpace(roleName) && !claimsIdentity.HasClaim(ClaimTypes.Role, roleName))
+                                    {
+                                        claimsIdentity.AddClaim(new Claim(ClaimTypes.Role, roleName));
+                                    }
+                                }
+                            }
+                        }
+                        catch { }
                     }
+
+                    var realmAccess = context?.Principal?.FindFirst("realm_access")?.Value;
+                    if (!string.IsNullOrWhiteSpace(realmAccess))
+                    {
+                        try
+                        {
+                            var parsedRealm = JsonNode.Parse(realmAccess);
+                            var realmRoles = parsedRealm?["roles"]?.AsArray();
+                            if (realmRoles != null)
+                            {
+                                foreach (var r in realmRoles)
+                                {
+                                    var roleName = r?.ToString();
+                                    if (!string.IsNullOrWhiteSpace(roleName) && !claimsIdentity.HasClaim(ClaimTypes.Role, roleName))
+                                    {
+                                        claimsIdentity.AddClaim(new Claim(ClaimTypes.Role, roleName));
+                                    }
+                                }
+                            }
+                        }
+                        catch { }
+                    }
+                    
                     return Task.CompletedTask;
                 }
             };

@@ -68,8 +68,13 @@ public class StoreBasketCommandHandler(
                 existingItem.Quantity = command.Product.Quantity;
             }
         }
+
+        if (!string.IsNullOrWhiteSpace(command?.Coupon))
+            basket.CouponCode = command?.Coupon;
         
-        if(command?.Coupon != null) basket.CouponCode = command?.Coupon;
+        if (command?.Coupon == string.Empty)
+            basket.CouponCode = null;
+            
         await repository.StoreBasket(basket, cancellationToken);
         return new StoreBasketResult(true);
     }
