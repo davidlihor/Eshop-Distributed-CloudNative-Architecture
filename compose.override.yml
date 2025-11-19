@@ -32,15 +32,14 @@ services:
     volumes:
       - postgres_basket:/var/lib/postgresql/data/
 
-  # orderdb:
-  #   container_name: orderdb
-  #   environment:
-  #     - ACCEPT_EULA=Y
-  #     - SA_PASSWORD=Password@123
-  #   ports:
-  #     - 1433:1433
-  #   volumes:
-  #     - sqlserver_data:/var/opt/mssql
+  orderdb:
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=Password@123
+    ports:
+      - 1433:1433
+    volumes:
+      - sqlserver_order:/var/opt/mssql
 
   keycloak-db:
     environment:
@@ -65,13 +64,15 @@ services:
       - 5672:5672
       - 15672:15672
   
-  # discount.seq:
-  #   container_name: Discount.Seq
-  #   environment:
-  #     - ACCEPT_EULA=Y
-  #   ports:
-  #     - "5341:5341"
-  #     - "80:80"
+  discount.seq:
+    environment:
+      - ACCEPT_EULA=Y
+      - SEQ_FIRSTRUN_ADMINPASSWORD=admin
+    ports:
+      - 5341:5341
+      - 80:80
+    volumes:
+      - seq-data:/data
   
   keycloak.identity:
     environment:
@@ -142,73 +143,62 @@ services:
       - messagebroker
       - keycloak.identity
       - catalog.api
-      # - discount.grpc
+      - discount.grpc
     ports:
       - 6001:8080
       - 6061:8081
     volumes: *dotnet-common-volumes
 
-  # discount.grpc:
-  #   environment:
-  #     - ASPNETCORE_ENVIRONMENT=Development
-  #     - ASPNETCORE_HTTP_PORTS=8080
-  #     - ASPNETCORE_HTTPS_PORTS=8081
-  #     - ConnectionStrings__Database=Data Source=discountdb.db
-  #     - OTEL_EXPORTER_OTLP_ENDPOINT=HTTP://discount.seq:5341/ingest/otlp/v1/traces
-  #     - OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
+  discount.grpc:
+    environment:
+      <<: *dotnet-common-env
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__Database: Data Source=discountdb.db
+      Authentication__Authority: http://keycloak.identity:8080/realms/eshop
+      Authentication__ValidIssuer: http://localhost:8080/realms/eshop
+      Authentication__ClientId: eshop-client
+      Authentication__Audience: eshop-client
+      OTEL_EXPORTER_OTLP_ENDPOINT: HTTP://discount.seq:5341/ingest/otlp/v1/traces
+      OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
+      Seq__ServerUrl: http://discount.seq:5341
+    depends_on:
+      - keycloak.identity
+      - discount.seq
+    ports:
+      - 6002:8080
+      - 6062:8081
+    volumes: *dotnet-common-volumes
 
-  #     - Kestrel__Endpoints__Http__Url=http://*:8080
-  #     - Kestrel__Endpoints__Https__Url=https://*:8081
-  #     - Kestrel__Endpoints__Https__Certificate__Path=/home/app/.aspnet/https/aspnetapp.pfx
-  #     - Kestrel__Endpoints__Https__Certificate__Password=david
-  #   ports:
-  #     - "6002:8080"
-  #     - "6062:8081"
-  #   volumes:
-  #     - ${HOME}/.microsoft/usersecrets:/home/app/.microsoft/usersecrets:ro
-  #     - ${HOME}/.aspnet/https:/home/app/.aspnet/https:ro
-  #     # - ${APPDATA}/Microsoft/UserSecrets:/home/app/.microsoft/usersecrets:ro
-  #     # - ${APPDATA}/ASP.NET/Https:/home/app/.aspnet/https:ro
-
-  # ordering.api:
-  #   environment:
-  #     - ASPNETCORE_ENVIRONMENT=Development
-  #     - ASPNETCORE_HTTP_PORTS=8080
-  #     - ASPNETCORE_HTTPS_PORTS=8081
-  #     - ConnectionStrings__Database=Server=orderdb,1433; Database=OrderDb; User Id=sa; Password=Password@123; Encrypt=False; Trust Server Certificate=True
-  #     - ConnectionStrings__Redis=distributedcache:6379
-  #     - GrpcSettings__CatalogUrl=https://catalog.api:8081
-  #     - FeatureManagement__OrderFullfilment=false
-  #     - MessageBroker__Host=amqp://messagebroker:5672
-  #     - MessageBroker__UserName=guest
-  #     - MessageBroker__Password=guest
-  #     - Keycloak__BaseUrl=http://keycloak.identity:8080
-  #     - Keycloak__Realm=eshop
-  #     - Keycloak__ClientId=ordering-service
-  #     - Keycloak__ClientSecret=DaUNH3CoWzXmuZkPMAZ4IOpiUGZ84TW0
-  #     - Keycloak__GrantType=client_credentials      
-  #     - Authentication__Authority=http://keycloak.identity:8080/realms/eshop
-  #     - Authentication__ValidIssuer=http://localhost:8080/realms/eshop
-  #     - Authentication__ClientId=eshop-client
-  #     - Authentication__Audience=account
-  #     - Kestrel__Endpoints__Http__Url=http://*:8080
-  #     - Kestrel__Endpoints__Https__Url=https://*:8081
-  #     - Kestrel__Endpoints__Https__Certificate__Path=/home/app/.aspnet/https/aspnetapp.pfx
-  #     - Kestrel__Endpoints__Https__Certificate__Password=david
-  #   depends_on:
-  #     - keycloak.identity
-  #     - catalog.api
-  #     - messagebroker
-  #     - distributedcache
-  #     - orderdb
-  #   ports:
-  #     - 6003:8080
-  #     - 6063:8081
-  #   volumes:
-  #     - ${HOME}/.microsoft/usersecrets:/home/app/.microsoft/usersecrets:ro
-  #     - ${HOME}/.aspnet/https:/home/app/.aspnet/https:ro
-  #     # - ${APPDATA}/Microsoft/UserSecrets:/home/app/.microsoft/usersecrets:ro
-  #     # - ${APPDATA}/ASP.NET/Https:/home/app/.aspnet/https:ro
+  ordering.api:
+    environment:
+      <<: *dotnet-common-env
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__Database: Server=orderdb,1433; Database=OrderDb; User Id=sa; Password=Password@123; Encrypt=False; Trust Server Certificate=True
+      ConnectionStrings__Redis: distributedcache:6379
+      MessageBroker__Host: amqp://messagebroker:5672
+      MessageBroker__UserName: guest
+      MessageBroker__Password: guest
+      Authentication__Authority: http://keycloak.identity:8080/realms/eshop
+      Authentication__ValidIssuer: http://localhost:8080/realms/eshop
+      Authentication__ClientId: eshop-client
+      Authentication__Audience: account
+      GrpcSettings__CatalogUrl: https://catalog.api:8081
+      Keycloak__BaseUrl: http://keycloak.identity:8080
+      Keycloak__Realm: eshop
+      Keycloak__ClientId: ordering-service
+      Keycloak__ClientSecret: DaUNH3CoWzXmuZkPMAZ4IOpiUGZ84TW0
+      Keycloak__GrantType: client_credentials      
+      FeatureManagement__OrderFullfilment: false
+    depends_on:
+      - orderdb
+      - distributedcache
+      - messagebroker
+      - keycloak.identity
+      - catalog.api
+    ports:
+      - 6003:8080
+      - 6063:8081
+    volumes: *dotnet-common-volumes
 
   yarpapigateway:
     environment:
@@ -220,8 +210,8 @@ services:
       Authentication__Audience: eshop-client
     depends_on:
       - catalog.api
-    #   - basket.api
-    #   - ordering.api
+      - basket.api
+      - ordering.api
     ports:
       - 6004:8080
       - 6064:8081

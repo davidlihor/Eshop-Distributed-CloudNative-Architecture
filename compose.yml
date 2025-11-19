@@ -7,8 +7,9 @@ services:
     container_name: Basket_DB
     image: postgres
 
-  # orderdb:
-  #   image: mcr.microsoft.com/mssql/server:2022-latest
+  orderdb:
+    container_name: Order_DB
+    image: mcr.microsoft.com/mssql/server:2022-latest
 
   keycloak-db:
     container_name: KeyCloak_DB
@@ -22,8 +23,9 @@ services:
     container_name: Rabbit_MQ
     image: rabbitmq:management
 
-  # discount.seq:
-  #   image: datalust/seq:latest
+  discount.seq:
+    container_name: Discount_Seq
+    image: datalust/seq:latest
     
   keycloak.identity:
     container_name: Keycloak
@@ -43,17 +45,19 @@ services:
       context: .
       dockerfile: Services/Basket.API/Dockerfile
 
-  # discount.grpc:
-  #   image: ${DOCKER_REGISTRY-}discountgrpc
-  #   build:
-  #     context: .
-  #     dockerfile: Services/Discount.Grpc/Dockerfile
+  discount.grpc:
+    container_name: Discount_gRPC
+    image: ${DOCKER_REGISTRY-}discountgrpc
+    build:
+      context: .
+      dockerfile: Services/Discount.Grpc/Dockerfile
 
-  # ordering.api:
-  #   image: ${DOCKER_REGISTRY-}orderingapi
-  #   build:
-  #     context: .
-  #     dockerfile: Services/Ordering/Ordering.API/Dockerfile
+  ordering.api:
+    container_name: Ordering_API
+    image: ${DOCKER_REGISTRY-}orderingapi
+    build:
+      context: .
+      dockerfile: Services/Ordering/Ordering.API/Dockerfile
 
   yarpapigateway:
     container_name: YARP_Gateway
@@ -71,6 +75,6 @@ services:
 volumes:
   postgres_catalog:
   postgres_basket:
-  sqlserver_data:
-  keycloak_data:
+  sqlserver_order:
   postgres_keycloak:
+  seq-data:
