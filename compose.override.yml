@@ -48,8 +48,8 @@ services:
       POSTGRES_DB: keycloak
     ports:
       - 5402:5432
-#    volumes:
-#      - postgres_keycloak:/var/lib/postgresql/data/
+    volumes:
+     - postgres_keycloak:/var/lib/postgresql/data/
   
   distributedcache:
     ports:
@@ -111,8 +111,8 @@ services:
       MessageBroker__Password: guest
       Authentication__Authority: http://keycloak.identity:8080/realms/eshop
       Authentication__ValidIssuer: http://localhost:8080/realms/eshop
-      Authentication__ClientId: eshop-client
-      Authentication__Audience: eshop-client
+      Authentication__ClientId: reactApp
+      Authentication__Audience: reactApp
     depends_on:
       - catalogdb
       - messagebroker
@@ -133,8 +133,8 @@ services:
       MessageBroker__Password: guest
       Authentication__Authority: http://keycloak.identity:8080/realms/eshop
       Authentication__ValidIssuer: http://localhost:8080/realms/eshop
-      Authentication__ClientId: eshop-client
-      Authentication__Audience: eshop-client
+      Authentication__ClientId: reactApp
+      Authentication__Audience: reactApp
       GrpcSettings__CatalogUrl: https://catalog.api:8081
       GrpcSettings__DiscountUrl: https://discount.grpc:8081
     depends_on:
@@ -156,8 +156,8 @@ services:
       ConnectionStrings__Database: Data Source=discountdb.db
       Authentication__Authority: http://keycloak.identity:8080/realms/eshop
       Authentication__ValidIssuer: http://localhost:8080/realms/eshop
-      Authentication__ClientId: eshop-client
-      Authentication__Audience: eshop-client
+      Authentication__ClientId: reactApp
+      Authentication__Audience: reactApp
       OTEL_EXPORTER_OTLP_ENDPOINT: HTTP://discount.seq:5341/ingest/otlp/v1/traces
       OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
       Seq__ServerUrl: http://discount.seq:5341
@@ -180,8 +180,8 @@ services:
       MessageBroker__Password: guest
       Authentication__Authority: http://keycloak.identity:8080/realms/eshop
       Authentication__ValidIssuer: http://localhost:8080/realms/eshop
-      Authentication__ClientId: eshop-client
-      Authentication__Audience: account
+      Authentication__ClientId: reactApp
+      Authentication__Audience: reactApp
       GrpcSettings__CatalogUrl: https://catalog.api:8081
       Keycloak__BaseUrl: http://keycloak.identity:8080
       Keycloak__Realm: eshop
@@ -206,8 +206,9 @@ services:
       ASPNETCORE_ENVIRONMENT: Docker
       Authentication__Authority: http://keycloak.identity:8080/realms/eshop
       Authentication__ValidIssuer: http://localhost:8080/realms/eshop
-      Authentication__ClientId: eshop-client
-      Authentication__Audience: eshop-client
+      Authentication__ClientId: reactApp
+      Authentication__Audience: reactApp
+      ALLOWED_ORIGINS: http://localhost:3000,https://localhost:3000
     depends_on:
       - catalog.api
       - basket.api
@@ -217,24 +218,9 @@ services:
       - 6064:8081
     volumes: *dotnet-common-volumes
 
-  # shopping.web:
-  #   environment:
-  #     - ASPNETCORE_ENVIRONMENT=Development
-  #     - ASPNETCORE_HTTP_PORTS=8080
-  #     - ASPNETCORE_HTTPS_PORTS=8081
-  #     - ApiSettings__GatewayAddress=http://yarpapigateway:8080
-
-  #     - Kestrel__Endpoints__Http__Url=http://*:8080
-  #     - Kestrel__Endpoints__Https__Url=https://*:8081
-  #     - Kestrel__Endpoints__Https__Certificate__Path=/home/app/.aspnet/https/aspnetapp.pfx
-  #     - Kestrel__Endpoints__Https__Certificate__Password=david
-  #   depends_on:
-  #     - yarpapigateway
-  #   ports:
-  #     - "6005:8080"
-  #     - "6065:8081"
-  #   volumes:
-  #     - ${HOME}/.microsoft/usersecrets:/home/app/.microsoft/usersecrets:ro
-  #     - ${HOME}/.aspnet/https:/home/app/.aspnet/https:ro
-  #     # - ${APPDATA}/Microsoft/UserSecrets:/home/app/.microsoft/usersecrets:ro
-  #     # - ${APPDATA}/ASP.NET/Https:/home/app/.aspnet/https:ro
+  client.web:
+    depends_on:
+      - yarpapigateway
+    ports:
+      - 6005:80
+      - 6065:80

@@ -66,11 +66,11 @@ services:
       context: .
       dockerfile: YarpApiGateway/Dockerfile
 
-  # shopping.web:
-  #   image: ${DOCKER_REGISTRY-}shoppingweb
-  #   build:
-  #     context: .
-  #     dockerfile: Shopping.Web/Dockerfile
+  client.web:
+    image: ${DOCKER_REGISTRY-}shoppingweb
+    build:
+      context: .
+      dockerfile: client/Dockerfile
 
 volumes:
   postgres_catalog:

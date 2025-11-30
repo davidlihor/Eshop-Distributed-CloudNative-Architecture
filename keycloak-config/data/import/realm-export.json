@@ -37,6 +37,35 @@
             }
           }
         ]
+      },
+      {
+        "clientId": "ordering-service",
+        "protocol": "openid-connect",
+        "publicClient": false,
+        "clientAuthenticatorType": "client-secret",
+        "secret": "DaUNH3CoWzXmuZkPMAZ4IOpiUGZ84TW0",
+        "standardFlowEnabled": false,
+        "implicitFlowEnabled": false,
+        "directAccessGrantsEnabled": false,
+        "serviceAccountsEnabled": true,
+        "redirectUris": [],
+        "webOrigins": [],
+        "attributes": {
+          "client_credentials.use_refresh_token": "false"
+        },
+        "protocolMappers": [
+          {
+            "name": "audience mapper",
+            "protocol": "openid-connect",
+            "protocolMapper": "oidc-audience-mapper",
+            "consentRequired": false,
+            "config": {
+              "included.client.audience": "account",
+              "id.token.claim": "true",
+              "access.token.claim": "true"
+            }
+          }
+        ]
       }
     ],
     "users": [
@@ -54,6 +83,20 @@
             "temporary": false
           }
         ]
+      },
+      {
+        "username": "service-account-ordering-service",
+        "enabled": true,
+        "emailVerified": false,
+        "firstName": "",
+        "lastName": "",
+        "email": "",
+        "serviceAccountClientId": "ordering-service",
+        "clientRoles": {
+          "realm-management": [
+            "view-users"
+          ]
+        }
       }
     ]
   }

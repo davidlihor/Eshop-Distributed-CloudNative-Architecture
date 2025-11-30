@@ -2,6 +2,15 @@
 
 public class Product : Entity<ProductId>
 {
+    internal Product() { }
+
+    public Product(ProductId id, string name, decimal price)
+    {
+        Id = id;
+        Name = name;
+        Price = price;
+    }
+
     public string Name { get; private set; } = default!;
     public decimal Price { get; private set; }
 
@@ -10,12 +19,7 @@ public class Product : Entity<ProductId>
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(price);
 
-        var product = new Product
-        {
-            Id = id,
-            Name = name,
-            Price = price
-        };
+        var product = new Product(id, name, price);
 
         return product;
     }
