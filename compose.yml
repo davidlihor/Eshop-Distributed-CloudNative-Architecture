@@ -67,6 +67,7 @@ services:
       dockerfile: YarpApiGateway/Dockerfile
 
   client.web:
+    container_name: Web_Client
     image: ${DOCKER_REGISTRY-}shoppingweb
     build:
       context: .

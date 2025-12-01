@@ -1,0 +1,14 @@
+{{- range .Values.apps }}
+{{- if .config }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .name }}-config
+  namespace: {{ $.Values.global.namespace }}
+data:
+  {{- range $key, $value := .config }}
+  {{ $key }}: "{{ $value }}"
+  {{- end }}
+{{- end }}
+{{- end }}

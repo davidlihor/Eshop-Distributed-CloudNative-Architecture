@@ -1,0 +1,159 @@
+{{- range .Values.apps }}
+{{- $appName := .name }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .name }}
+  namespace: {{ $.Values.global.namespace }}
+  labels:
+    app: {{ .label }}
+spec:
+  replicas: {{ .replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ .name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .name }}
+    spec:
+      {{- if .initContainers }}
+      initContainers:
+        {{- range .initContainers }}
+        {{- $initName := . }}
+        {{- $init := index $.Values.initContainers $initName }}
+        {{- if $init }}
+        - name: {{ $initName }}
+          image: {{ $init.image.repository }}:{{ $init.image.tag }}
+          {{- if $init.command }}
+          command:
+            {{- toYaml $init.command | nindent 12 }}
+          {{- end }}
+          {{- if $init.args }}
+          args:
+            {{- toYaml $init.args | nindent 12 }}
+          {{- end }}
+         {{- else }}
+        {{- fail (printf "InitContainer '%s' not found in .Values.initContainers for app '%s'" $initName $appName) }}
+        {{- end }}
+        {{- end }}
+      {{- end }}
+
+      containers:
+        - name: {{ .name }}
+          image: {{ .image.repository }}:{{ .image.tag }}
+          {{- if or .config .secrets }}
+          env:
+            {{- if .config }}
+            {{- range $key, $_ := .config }}
+            - name: {{ $key | upper }}
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ $appName }}-config
+                  key: {{ $key }}
+            {{- end }}
+            {{- end }}
+           
+            {{- if .secrets }}
+            {{- range $key, $_ := .secrets }}
+            - name: {{ $key | upper }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $appName }}-secret
+                  key: {{ $key }}
+            {{- end }}
+            {{- end }}
+          
+          {{- end }}
+
+          {{- if .args }}
+          args:
+            {{- toYaml .args | nindent 12 }}
+          {{- end }}
+
+          {{- if or .resources $.Values.defaultResources }}
+          resources:
+            {{- toYaml (default $.Values.defaultResources .resources) | nindent 12 }}
+          {{- end }}
+
+          {{- if .ports }}
+          ports:
+            {{- range .ports }}
+            - containerPort: {{ .port }}
+              protocol: TCP
+              {{- if .name }}
+              name: {{ .name }}     
+              {{- end -}}
+            {{- end -}}
+          {{- end -}}
+
+          {{- if .volumes }}
+          volumeMounts:
+            {{- range .volumes }}
+            - name: {{ .name }}
+              mountPath: {{ .mountPath }}
+            {{- end }}
+          {{- end }}
+
+        {{- if .sidecars }}
+        {{- range .sidecars }}
+        {{- $sidecarName := . }}
+        {{- $sidecarConfig := index $.Values.sidecars $sidecarName }}
+        {{- if $sidecarConfig }}
+        - name: {{ $sidecarName }}
+          image: {{ $sidecarConfig.image.repository }}:{{ $sidecarConfig.image.tag }}
+          {{- if $sidecarConfig.command }}
+          command:
+            {{- toYaml $sidecarConfig.command | nindent 12 }}
+          {{- end }}
+          {{- if $sidecarConfig.args }}
+          args:
+            {{- toYaml $sidecarConfig.args | nindent 12 }}
+          {{- end }}
+          {{- if $sidecarConfig.env }}
+          env:
+            {{- range $key, $value := $sidecarConfig.env }}
+            - name: {{ $key }}
+              value: {{ $value | quote }}
+            {{- end }}
+          {{- end }}
+          {{- if $sidecarConfig.ports }}
+          ports:
+            {{- range $sidecarConfig.ports }}
+            - containerPort: {{ .port }}
+              {{- if .name }}
+              name: {{ .name }}
+              {{- end }}
+              protocol: {{ .protocol | default "TCP" }}
+            {{- end }}
+          {{- end }}
+          {{- if $sidecarConfig.volumeMounts }}
+          volumeMounts:
+            {{- toYaml $sidecarConfig.volumeMounts | nindent 12 }}
+          {{- end }}
+          {{- if $sidecarConfig.resources }}
+          resources:
+            {{- toYaml $sidecarConfig.resources | nindent 12 }}
+          {{- end }}
+        {{- else }}
+        {{- fail (printf "Sidecar '%s' does not exist in .Values.sidecars for app '%s'" $sidecarName $appName) }}
+        {{- end }}
+        {{- end }}
+        {{- end }}
+
+      {{- if .volumes }}
+      volumes:
+        {{- range .volumes }}
+        - name: {{ .name }}
+          {{- if eq .type "pvc" }}
+          persistentVolumeClaim:
+            claimName: {{ .name | default (printf "%s-pvc" .name) }}-pvc
+        {{- else if eq .type "configMap" }}
+          configMap:
+            name: {{ .name }}
+        {{- end }}
+        {{- end }}
+      {{- end }}
+
+{{- end }}

@@ -1,0 +1,373 @@
+global:
+  namespace: default
+defaultResources:
+  limits:
+    cpu: "500m"
+    memory: "1024Mi"
+  requests:
+    cpu: "100m"
+    memory: "128Mi"
+prometheus:
+  enabled: false
+  namespaceSelector:
+    matchNames:
+      - default
+      - eshop
+
+services:
+  - name: catalogdb-svc
+    selector: catalog-db
+    type: ClusterIP
+    ports:
+    - name: http
+      port: 5432
+
+  - name: basketdb-svc
+    selector: basket-db
+    type: ClusterIP
+    ports:
+    - name: http
+      port: 5432
+
+  - name: orderdb-svc
+    selector: order-db
+    type: ClusterIP
+    ports:
+    - name: mssql
+      port: 1433
+      targetPort: 1433
+
+  - name: keycloak-db-svc
+    selector: keycloak-db
+    type: ClusterIP
+    ports:
+    - name: http
+      port: 5432
+
+  - name: redis-svc
+    selector: redis
+    type: ClusterIP
+    ports:
+    - name: redis
+      port: 6379
+
+  - name: rabbitmq-svc
+    selector: rabbit-mq
+    type: ClusterIP
+    ports:
+    - name: amqp
+      port: 5672
+      targetPort: 5672
+    - name: http
+      port: 15672
+      targetPort: 15672
+
+  - name: seq-svc
+    selector: discount-seq
+    type: ClusterIP
+    ports:
+    - name: ingest
+      port: 5341
+    - name: http
+      port: 80
+
+  - name: keycloak-clusterip
+    selector: keycloak-svc
+    type: ClusterIP
+    ports:
+    - name: http
+      port: 8080
+
+  - name: catalog-clusterip
+    selector: catalog-svc
+    type: ClusterIP
+    ports:
+    - name: http
+      port: 8080
+
+  - name: basket-clusterip
+    selector: basket-svc
+    type: ClusterIP
+    ports:
+    - name: http
+      port: 8080
+
+  - name: ordering-clusterip
+    selector: ordering-svc
+    type: ClusterIP
+    ports:
+    - name: http
+      port: 8080
+
+  - name: yarp-api-gateway-clusterip
+    selector: yarp-api-gateway
+    type: ClusterIP
+    ports:
+    - name: http
+      port: 8080
+
+  - name: web-client-clusterip
+    selector: web-client
+    type: ClusterIP
+    ports:
+    - name: http
+      port: 80
+
+apps:
+  - name: catalog-db
+    image:
+      repository: postgres
+      tag: latest
+    label: eshop
+    replicaCount: 1
+    ports: 
+      - port: 5432
+    secrets:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: CatalogDb
+      PGDATA: /postgres-data/pgdata
+    volumes:
+      - name: catalog-volume
+        mountPath: /postgres-data
+        type: pvc
+
+  - name: basket-db
+    image:
+      repository: postgres
+      tag: latest
+    label: eshop
+    replicaCount: 1
+    ports:
+      - port: 5432
+    secrets:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: BasketDb
+      PGDATA: /postgres-data/pgdata
+    volumes:
+      - name: basket-volume
+        mountPath: /postgres-data
+        type: pvc
+
+  - name: order-db
+    image:
+      repository: mcr.microsoft.com/mssql/server
+      tag: 2022-latest
+    label: eshop
+    replicaCount: 1
+    ports:
+      - port: 1433
+    secrets:
+      ACCEPT_EULA: "Y"
+      SA_PASSWORD: Password@123
+    volumes:
+      - name: order-volume
+        mountPath: /var/opt/mssql/data
+        type: pvc
+
+  - name: keycloak-db
+    image:
+      repository: postgres
+      tag: latest
+    label: eshop
+    replicaCount: 1
+    ports:
+      - port: 5432
+    secrets:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: Password@123
+      POSTGRES_DB: keycloak
+      PGDATA: /postgres-data/pgdata
+    volumes:
+      - name: keycloak-volume
+        mountPath: /postgres-data
+        type: pvc
+
+  - name: redis
+    image:
+      repository: redis
+      tag: latest
+    label: eshop
+    replicaCount: 1
+    ports:
+      - port: 6379
+
+  - name: rabbit-mq
+    image:
+      repository: rabbitmq
+      tag: 3-management
+    label: eshop
+    replicaCount: 1
+    ports: 
+      - port: 5672
+      - port: 15672
+    secrets:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+
+  - name: discount-seq
+    image:
+      repository: datalust/seq
+      tag: latest
+    label: eshop
+    replicaCount: 1
+    ports:
+      - port: 5341
+      - port: 80
+    secrets:
+      ACCEPT_EULA: "Y"
+      SEQ_FIRSTRUN_ADMINPASSWORD: admin
+    volumes:
+      - name: seq-data
+        mountPath: /data
+        type: pvc
+
+  - name: keycloak-svc
+    image:
+      repository: quay.io/keycloak/keycloak
+      tag: latest
+    label: eshop
+    replicaCount: 1
+    args:
+      - start-dev
+      # - --import-realm
+    ports:
+      - port: 8080
+    config:
+      KC_DB: postgres
+      KC_DB_URL_HOST: keycloak-db-svc
+      KC_DB_URL_PORT: 5432
+      KK_TO_RMQ_URL: rabbitmq-svc
+      KK_TO_RMQ_PORT: 5672
+      KK_TO_RMQ_VHOST: /
+      KK_TO_RMQ_EXCHANGE: keycloak.exchange
+    secrets:
+      KC_BOOTSTRAP_ADMIN_PASSWORD: admin
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_DB_USERNAME: postgres
+      KC_DB_PASSWORD: Password@123
+      KK_TO_RMQ_USERNAME: guest
+      KK_TO_RMQ_PASSWORD: guest
+
+  - name: catalog-api
+    image: 
+      repository: catalogapi
+      tag: latest
+    label: eshop
+    replicaCount: 1
+    ports: 
+      - port: 8080
+    config:
+      ASPNETCORE_ENVIRONMENT: Development
+      MessageBroker__Host: amqp://rabbitmq-svc:5672
+      MessageBroker__UserName: guest
+      Authentication__Authority: http://keycloak.identity:8080/realms/eshop
+      Authentication__ValidIssuer: http://localhost:8080/realms/eshop
+    secrets:
+      ConnectionStrings__Database: Server=catalogdb-svc; Port=5432; Database=CatalogDb; User Id=postgres; Password=postgres; Include Error Detail=true
+      MessageBroker__Password: guest
+      Authentication__ClientId: reactApp
+      Authentication__Audience: reactApp
+
+  - name: basket-api
+    image:
+      repository: basketapi
+      tag: latest
+    label: eshop
+    replicaCount: 1
+    ports:
+      - port: 8080
+    config:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__Redis: redis-svc:6379
+      MessageBroker__Host: amqp://rabbitmq-svc:5672
+      MessageBroker__UserName: guest
+      # GrpcSettings__CatalogUrl: https://catalog.api:8080
+      # GrpcSettings__DiscountUrl: https://discount.grpc:8080
+      Authentication__Authority: http://keycloak.identity:8080/realms/eshop
+      Authentication__ValidIssuer: http://localhost:8080/realms/eshop
+    secrets:
+      ConnectionStrings__Database: Server=basketdb-svc; Port=5432; Database=BasketDb; User Id=postgres; Password=postgres; Include Error Detail=true
+      MessageBroker__Password: guest
+      Authentication__ClientId: reactApp
+      Authentication__Audience: reactApp
+
+  - name: discount-grpc
+    image:
+      repository: discountgrpc
+      tag: latest
+    label: eshop
+    replicaCount: 1
+    ports:
+      - port: 8080
+    config:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__Database: Data Source=discountdb.db
+      OTEL_EXPORTER_OTLP_ENDPOINT: HTTP://seq-svc:5341/ingest/otlp/v1/traces
+      OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
+      Seq__ServerUrl: http://seq-svc:5341
+      Authentication__Authority: http://keycloak.identity:8080/realms/eshop
+      Authentication__ValidIssuer: http://localhost:8080/realms/eshop
+    secrets:
+      Authentication__ClientId: reactApp
+      Authentication__Audience: reactApp
+
+  - name: ordering-api
+    image:
+      repository: orderingapi
+      tag: latest
+    label: eshop
+    replicaCount: 1
+    ports:
+      - port: 8080
+    config:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__Redis: redis-svc:6379
+      MessageBroker__Host: amqp://rabbitmq-svc:5672
+      MessageBroker__UserName: guest
+      # GrpcSettings__CatalogUrl: https://catalog.api:8081
+      Keycloak__BaseUrl: http://keycloak.identity:8080
+      Keycloak__Realm: eshop
+      Keycloak__GrantType: client_credentials      
+      FeatureManagement__OrderFullfilment: "false"
+      Authentication__Authority: http://keycloak.identity:8080/realms/eshop
+      Authentication__ValidIssuer: http://localhost:8080/realms/eshop
+    secrets:
+      ConnectionStrings__Database: Server=orderdb-svc,1433; Database=OrderDb; User Id=sa; Password=Password@123; Encrypt=False; Trust Server Certificate=True
+      MessageBroker__Password: guest
+      Keycloak__ClientId: ordering-service
+      Keycloak__ClientSecret: DaUNH3CoWzXmuZkPMAZ4IOpiUGZ84TW0
+      Authentication__ClientId: reactApp
+      Authentication__Audience: reactApp
+
+  - name: yarp-api-gateway
+    image:
+      repository: yarpapigateway
+      tag: latest
+    label: eshop
+    replicaCount: 1
+    ports:
+      - port: 8080
+    config:
+      ASPNETCORE_ENVIRONMENT: Production
+      ALLOWED_ORIGINS: http://localhost:3000,http://localhost:6005,http://localhost:6065,https://app.eshop.local
+      Authentication__Authority: http://keycloak.identity:8080/realms/eshop
+      Authentication__ValidIssuer: http://localhost:8080/realms/eshop
+    secrets:
+      Authentication__ClientId: reactApp
+      Authentication__Audience: reactApp
+
+  - name: web-client
+    image:
+      repository: shoppingweb
+      tag: latest
+    label: eshop
+    replicaCount: 1
+    ports:
+      - port: 80
+    config:
+      YARP_API_URL: http://api.eshop.local 
+      KEYCLOAK_URL: http://id.eshop.local
+      KEYCLOAK_REALM: eshop
+      KEYCLOAK_CLIENTID: reactApp
