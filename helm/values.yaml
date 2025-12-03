@@ -1,12 +1,14 @@
 global:
-  namespace: default
+  istio-injection: enabled
+  namespace: eshop
+  label: eshop
 defaultResources:
   limits:
-    cpu: "500m"
-    memory: "1024Mi"
+    cpu: "1"
+    memory: "2Gi"
   requests:
-    cpu: "100m"
-    memory: "128Mi"
+    cpu: "250m"
+    memory: "512Mi"
 prometheus:
   enabled: false
   namespaceSelector:
@@ -19,21 +21,21 @@ services:
     selector: catalog-db
     type: ClusterIP
     ports:
-    - name: http
+    - name: tcp
       port: 5432
 
   - name: basketdb-svc
     selector: basket-db
     type: ClusterIP
     ports:
-    - name: http
+    - name: tcp
       port: 5432
 
   - name: orderdb-svc
     selector: order-db
     type: ClusterIP
     ports:
-    - name: mssql
+    - name: tcp
       port: 1433
       targetPort: 1433
 
@@ -41,14 +43,14 @@ services:
     selector: keycloak-db
     type: ClusterIP
     ports:
-    - name: http
+    - name: tcp
       port: 5432
 
   - name: redis-svc
     selector: redis
     type: ClusterIP
     ports:
-    - name: redis
+    - name: tcp
       port: 6379
 
   - name: rabbitmq-svc
@@ -58,7 +60,7 @@ services:
     - name: amqp
       port: 5672
       targetPort: 5672
-    - name: http
+    - name: http2
       port: 15672
       targetPort: 15672
 
@@ -68,49 +70,56 @@ services:
     ports:
     - name: ingest
       port: 5341
-    - name: http
+    - name: http2
       port: 80
 
   - name: keycloak-clusterip
     selector: keycloak-svc
     type: ClusterIP
     ports:
-    - name: http
+    - name: http2
       port: 8080
 
   - name: catalog-clusterip
     selector: catalog-svc
     type: ClusterIP
     ports:
-    - name: http
+    - name: http2
       port: 8080
 
   - name: basket-clusterip
     selector: basket-svc
     type: ClusterIP
     ports:
-    - name: http
+    - name: http2
+      port: 8080
+
+  - name: discount-clusterip
+    selector: discount-grpc
+    type: ClusterIP
+    ports:
+    - name: grpc
       port: 8080
 
   - name: ordering-clusterip
     selector: ordering-svc
     type: ClusterIP
     ports:
-    - name: http
+    - name: http2
       port: 8080
 
   - name: yarp-api-gateway-clusterip
     selector: yarp-api-gateway
     type: ClusterIP
     ports:
-    - name: http
+    - name: http2
       port: 8080
 
   - name: web-client-clusterip
     selector: web-client
     type: ClusterIP
     ports:
-    - name: http
+    - name: http2
       port: 80
 
 apps:
@@ -283,8 +292,8 @@ apps:
       ConnectionStrings__Redis: redis-svc:6379
       MessageBroker__Host: amqp://rabbitmq-svc:5672
       MessageBroker__UserName: guest
-      # GrpcSettings__CatalogUrl: https://catalog.api:8080
-      # GrpcSettings__DiscountUrl: https://discount.grpc:8080
+      GrpcSettings__CatalogUrl: https://catalog.api:8080
+      GrpcSettings__DiscountUrl: https://discount.grpc:8080
       Authentication__Authority: http://keycloak.identity:8080/realms/eshop
       Authentication__ValidIssuer: http://localhost:8080/realms/eshop
     secrets:
@@ -326,7 +335,7 @@ apps:
       ConnectionStrings__Redis: redis-svc:6379
       MessageBroker__Host: amqp://rabbitmq-svc:5672
       MessageBroker__UserName: guest
-      # GrpcSettings__CatalogUrl: https://catalog.api:8081
+      GrpcSettings__CatalogUrl: https://catalog.api:8080
       Keycloak__BaseUrl: http://keycloak.identity:8080
       Keycloak__Realm: eshop
       Keycloak__GrantType: client_credentials      
