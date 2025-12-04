@@ -1,5 +1,5 @@
 global:
-  istio-injection: enabled
+  istioInjection: true
   namespace: eshop
   label: eshop
 defaultResources:
@@ -60,7 +60,7 @@ services:
     - name: amqp
       port: 5672
       targetPort: 5672
-    - name: http2
+    - name: http
       port: 15672
       targetPort: 15672
 
@@ -70,56 +70,63 @@ services:
     ports:
     - name: ingest
       port: 5341
-    - name: http2
+    - name: http
       port: 80
 
   - name: keycloak-clusterip
     selector: keycloak-svc
     type: ClusterIP
     ports:
-    - name: http2
+    - name: http
       port: 8080
 
   - name: catalog-clusterip
-    selector: catalog-svc
+    selector: catalog-api
     type: ClusterIP
     ports:
-    - name: http2
+    - name: http
+      port: 80
+      targetPort: 8080
+    - name: grpc
       port: 8080
 
   - name: basket-clusterip
-    selector: basket-svc
+    selector: basket-api
     type: ClusterIP
     ports:
-    - name: http2
-      port: 8080
+    - name: http
+      port: 80
+      targetPort: 8080
 
   - name: discount-clusterip
     selector: discount-grpc
     type: ClusterIP
     ports:
     - name: grpc
-      port: 8080
+      port: 80
+      targetPort: 8080
 
   - name: ordering-clusterip
-    selector: ordering-svc
+    selector: ordering-api
     type: ClusterIP
     ports:
-    - name: http2
-      port: 8080
+    - name: http
+      port: 80
+      targetPort: 8080
 
   - name: yarp-api-gateway-clusterip
     selector: yarp-api-gateway
     type: ClusterIP
     ports:
-    - name: http2
-      port: 8080
+    - name: http
+      port: 80
+      targetPort: 8080
 
   - name: web-client-clusterip
     selector: web-client
     type: ClusterIP
     ports:
-    - name: http2
+    - name: http
       port: 80
 
 apps:
@@ -240,7 +247,7 @@ apps:
     replicaCount: 1
     args:
       - start-dev
-      # - --import-realm
+      - --import-realm
     ports:
       - port: 8080
     config:
@@ -251,6 +258,9 @@ apps:
       KK_TO_RMQ_PORT: 5672
       KK_TO_RMQ_VHOST: /
       KK_TO_RMQ_EXCHANGE: keycloak.exchange
+      KC_PROXY: edge
+      KC_HOSTNAME: https://id.eshop.local
+      KC_HOSTNAME_BACKCHANNEL_DYNAMIC: "true"
     secrets:
       KC_BOOTSTRAP_ADMIN_PASSWORD: admin
       KC_BOOTSTRAP_ADMIN_USERNAME: admin
@@ -258,6 +268,11 @@ apps:
       KC_DB_PASSWORD: Password@123
       KK_TO_RMQ_USERNAME: guest
       KK_TO_RMQ_PASSWORD: guest
+    volumes:
+      - name: keycloak-config
+        mountPath: /opt/keycloak/data/import/realm-export.json
+        subPath: realm-export.json
+        type: configMap
 
   - name: catalog-api
     image: 
@@ -271,8 +286,8 @@ apps:
       ASPNETCORE_ENVIRONMENT: Development
       MessageBroker__Host: amqp://rabbitmq-svc:5672
       MessageBroker__UserName: guest
-      Authentication__Authority: http://keycloak.identity:8080/realms/eshop
-      Authentication__ValidIssuer: http://localhost:8080/realms/eshop
+      Authentication__Authority: http://keycloak-clusterip:8080/realms/eshop
+      Authentication__ValidIssuer: http://id.eshop.local/realms/eshop
     secrets:
       ConnectionStrings__Database: Server=catalogdb-svc; Port=5432; Database=CatalogDb; User Id=postgres; Password=postgres; Include Error Detail=true
       MessageBroker__Password: guest
@@ -292,10 +307,10 @@ apps:
       ConnectionStrings__Redis: redis-svc:6379
       MessageBroker__Host: amqp://rabbitmq-svc:5672
       MessageBroker__UserName: guest
-      GrpcSettings__CatalogUrl: https://catalog.api:8080
-      GrpcSettings__DiscountUrl: https://discount.grpc:8080
-      Authentication__Authority: http://keycloak.identity:8080/realms/eshop
-      Authentication__ValidIssuer: http://localhost:8080/realms/eshop
+      GrpcSettings__CatalogUrl: http://catalog-clusterip:8080
+      GrpcSettings__DiscountUrl: http://discount.grpc:8080
+      Authentication__Authority: http://keycloak-clusterip:8080/realms/eshop
+      Authentication__ValidIssuer: https://id.eshop.local/realms/eshop
     secrets:
       ConnectionStrings__Database: Server=basketdb-svc; Port=5432; Database=BasketDb; User Id=postgres; Password=postgres; Include Error Detail=true
       MessageBroker__Password: guest
@@ -317,7 +332,7 @@ apps:
       OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
       Seq__ServerUrl: http://seq-svc:5341
       Authentication__Authority: http://keycloak.identity:8080/realms/eshop
-      Authentication__ValidIssuer: http://localhost:8080/realms/eshop
+      Authentication__ValidIssuer: http://id.eshop.local/realms/eshop
     secrets:
       Authentication__ClientId: reactApp
       Authentication__Audience: reactApp
@@ -341,7 +356,7 @@ apps:
       Keycloak__GrantType: client_credentials      
       FeatureManagement__OrderFullfilment: "false"
       Authentication__Authority: http://keycloak.identity:8080/realms/eshop
-      Authentication__ValidIssuer: http://localhost:8080/realms/eshop
+      Authentication__ValidIssuer: http://id.eshop.local/realms/eshop
     secrets:
       ConnectionStrings__Database: Server=orderdb-svc,1433; Database=OrderDb; User Id=sa; Password=Password@123; Encrypt=False; Trust Server Certificate=True
       MessageBroker__Password: guest
@@ -362,10 +377,15 @@ apps:
       ASPNETCORE_ENVIRONMENT: Production
       ALLOWED_ORIGINS: http://localhost:3000,http://localhost:6005,http://localhost:6065,https://app.eshop.local
       Authentication__Authority: http://keycloak.identity:8080/realms/eshop
-      Authentication__ValidIssuer: http://localhost:8080/realms/eshop
+      Authentication__ValidIssuer: http://id.eshop.local/realms/eshop
     secrets:
       Authentication__ClientId: reactApp
       Authentication__Audience: reactApp
+    volumes:
+      - name: yarp-config
+        mountPath: /app/appsettings.Production.json
+        subPath: appsettings.Production.json
+        type: configMap
 
   - name: web-client
     image:
@@ -376,7 +396,7 @@ apps:
     ports:
       - port: 80
     config:
-      YARP_API_URL: http://api.eshop.local 
-      KEYCLOAK_URL: http://id.eshop.local
+      YARP_API_URL: https://api.eshop.local 
+      KEYCLOAK_URL: https://id.eshop.local
       KEYCLOAK_REALM: eshop
       KEYCLOAK_CLIENTID: reactApp

@@ -93,6 +93,9 @@ spec:
             {{- range .volumes }}
             - name: {{ .name }}
               mountPath: {{ .mountPath }}
+              {{- if eq .type "configMap" }}
+              subPath: {{ .subPath }}
+              {{- end }}  
             {{- end }}
           {{- end }}
 

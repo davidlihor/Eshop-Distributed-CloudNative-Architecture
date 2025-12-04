@@ -1,0 +1,59 @@
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: eshop-app-vs
+  namespace: eshop
+spec:
+  hosts:
+    - app.eshop.local
+  gateways:
+    - eshop-gateway
+  http:
+    - match:
+        - uri:
+            prefix: /
+      route:
+        - destination:
+            host: web-client-clusterip.eshop.svc.cluster.local
+            port:
+              number: 80
+---
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: eshop-api-vs
+  namespace: eshop
+spec:
+  hosts:
+    - api.eshop.local
+  gateways:
+    - eshop-gateway
+  http:
+    - match:
+        - uri:
+            prefix: /
+      route:
+        - destination:
+            host: yarp-api-gateway-clusterip.eshop.svc.cluster.local
+            port:
+              number: 80
+---
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: eshop-id-vs
+  namespace: eshop
+spec:
+  hosts:
+    - id.eshop.local
+  gateways:
+    - eshop-gateway
+  http:
+    - match:
+        - uri:
+            prefix: /
+      route:
+        - destination:
+            host: keycloak-clusterip.eshop.svc.cluster.local
+            port:
+              number: 8080
