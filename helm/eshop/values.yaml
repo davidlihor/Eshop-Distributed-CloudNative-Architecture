@@ -1,7 +1,6 @@
 global:
   istioInjection: true
   namespace: eshop
-  label: eshop
 defaultResources:
   limits:
     cpu: "1"
@@ -86,7 +85,6 @@ services:
     ports:
     - name: http
       port: 80
-      targetPort: 8080
     - name: grpc
       port: 8080
 
@@ -102,9 +100,10 @@ services:
     selector: discount-grpc
     type: ClusterIP
     ports:
-    - name: grpc
+    - name: http
       port: 80
-      targetPort: 8080
+    - name: grpc
+      port: 8080
 
   - name: ordering-clusterip
     selector: ordering-api
@@ -134,7 +133,9 @@ apps:
     image:
       repository: postgres
       tag: latest
-    label: eshop
+    labels: 
+      app: catalog-db
+      proj: eshop
     replicaCount: 1
     ports: 
       - port: 5432
@@ -152,7 +153,9 @@ apps:
     image:
       repository: postgres
       tag: latest
-    label: eshop
+    labels: 
+      app: basket-db
+      proj: eshop
     replicaCount: 1
     ports:
       - port: 5432
@@ -170,7 +173,9 @@ apps:
     image:
       repository: mcr.microsoft.com/mssql/server
       tag: 2022-latest
-    label: eshop
+    labels: 
+      app: order-db
+      proj: eshop
     replicaCount: 1
     ports:
       - port: 1433
@@ -186,7 +191,9 @@ apps:
     image:
       repository: postgres
       tag: latest
-    label: eshop
+    labels: 
+      app: keycloak-db
+      proj: eshop
     replicaCount: 1
     ports:
       - port: 5432
@@ -204,7 +211,9 @@ apps:
     image:
       repository: redis
       tag: latest
-    label: eshop
+    labels: 
+      app: redis
+      proj: eshop
     replicaCount: 1
     ports:
       - port: 6379
@@ -213,7 +222,9 @@ apps:
     image:
       repository: rabbitmq
       tag: 3-management
-    label: eshop
+    labels: 
+      app: rabbit-mq
+      proj: eshop
     replicaCount: 1
     ports: 
       - port: 5672
@@ -226,7 +237,9 @@ apps:
     image:
       repository: datalust/seq
       tag: latest
-    label: eshop
+    labels: 
+      app: discount-seq
+      proj: eshop
     replicaCount: 1
     ports:
       - port: 5341
@@ -243,7 +256,9 @@ apps:
     image:
       repository: quay.io/keycloak/keycloak
       tag: latest
-    label: eshop
+    labels: 
+      app: keycloak-svc
+      proj: eshop
     replicaCount: 1
     args:
       - start-dev
@@ -274,31 +289,72 @@ apps:
         subPath: realm-export.json
         type: configMap
 
-  - name: catalog-api
+  - name: catalog-api-v1
     image: 
       repository: catalogapi
       tag: latest
-    label: eshop
+    labels: 
+      app: catalog-api
+      version: v1
     replicaCount: 1
+    sa: catalog-sa
     ports: 
+      - port: 80
       - port: 8080
     config:
       ASPNETCORE_ENVIRONMENT: Development
       MessageBroker__Host: amqp://rabbitmq-svc:5672
       MessageBroker__UserName: guest
       Authentication__Authority: http://keycloak-clusterip:8080/realms/eshop
-      Authentication__ValidIssuer: http://id.eshop.local/realms/eshop
+      Authentication__ValidIssuer: https://id.eshop.local/realms/eshop
+      Kestrel__Endpoints__WebApi__Url: http://+:80
+      Kestrel__Endpoints__WebApi__Protocols: Http1
+      Kestrel__Endpoints__Grpc__Url: http://+:8080
+      Kestrel__Endpoints__Grpc__Protocols: Http2
     secrets:
       ConnectionStrings__Database: Server=catalogdb-svc; Port=5432; Database=CatalogDb; User Id=postgres; Password=postgres; Include Error Detail=true
       MessageBroker__Password: guest
       Authentication__ClientId: reactApp
       Authentication__Audience: reactApp
+    readinessProbe:
+    livenessProbe:
+
+  - name: catalog-api-v2
+    image: 
+      repository: catalogapi
+      tag: latest
+    labels: 
+      app: catalog-api
+      version: v2
+    replicaCount: 1
+    ports: 
+      - port: 80
+      - port: 8080
+    config:
+      ASPNETCORE_ENVIRONMENT: Development
+      MessageBroker__Host: amqp://rabbitmq-svc:5672
+      MessageBroker__UserName: guest
+      Authentication__Authority: http://keycloak-clusterip:8080/realms/eshop
+      Authentication__ValidIssuer: https://id.eshop.local/realms/eshop
+      Kestrel__Endpoints__WebApi__Url: http://+:80
+      Kestrel__Endpoints__WebApi__Protocols: Http1
+      Kestrel__Endpoints__Grpc__Url: http://+:8080
+      Kestrel__Endpoints__Grpc__Protocols: Http2
+    secrets:
+      ConnectionStrings__Database: Server=catalogdb-svc; Port=5432; Database=CatalogDb; User Id=postgres; Password=postgres; Include Error Detail=true
+      MessageBroker__Password: guest
+      Authentication__ClientId: reactApp
+      Authentication__Audience: reactApp
+    readinessProbe:
+    livenessProbe:
 
   - name: basket-api
     image:
       repository: basketapi
       tag: latest
-    label: eshop
+    labels:
+      app: basket-api
+      proj: eshop
     replicaCount: 1
     ports:
       - port: 8080
@@ -308,7 +364,7 @@ apps:
       MessageBroker__Host: amqp://rabbitmq-svc:5672
       MessageBroker__UserName: guest
       GrpcSettings__CatalogUrl: http://catalog-clusterip:8080
-      GrpcSettings__DiscountUrl: http://discount.grpc:8080
+      GrpcSettings__DiscountUrl: http://discount-clusterip:8080
       Authentication__Authority: http://keycloak-clusterip:8080/realms/eshop
       Authentication__ValidIssuer: https://id.eshop.local/realms/eshop
     secrets:
@@ -316,14 +372,21 @@ apps:
       MessageBroker__Password: guest
       Authentication__ClientId: reactApp
       Authentication__Audience: reactApp
+    readinessProbe:
+      port: 8080
+    livenessProbe:
+      port: 8080
 
   - name: discount-grpc
     image:
       repository: discountgrpc
       tag: latest
-    label: eshop
+    labels: 
+      app: discount-grpc
+      proj: eshop
     replicaCount: 1
     ports:
+      - port: 80
       - port: 8080
     config:
       ASPNETCORE_ENVIRONMENT: Development
@@ -331,17 +394,25 @@ apps:
       OTEL_EXPORTER_OTLP_ENDPOINT: HTTP://seq-svc:5341/ingest/otlp/v1/traces
       OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
       Seq__ServerUrl: http://seq-svc:5341
-      Authentication__Authority: http://keycloak.identity:8080/realms/eshop
-      Authentication__ValidIssuer: http://id.eshop.local/realms/eshop
+      Authentication__Authority: http://keycloak-clusterip:8080/realms/eshop
+      Authentication__ValidIssuer: https://id.eshop.local/realms/eshop
+      Kestrel__Endpoints__WebApi__Url: http://+:80
+      Kestrel__Endpoints__WebApi__Protocols: Http1
+      Kestrel__Endpoints__Grpc__Url: http://+:8080
+      Kestrel__Endpoints__Grpc__Protocols: Http2
     secrets:
       Authentication__ClientId: reactApp
       Authentication__Audience: reactApp
+    readinessProbe:
+    livenessProbe:
 
   - name: ordering-api
     image:
       repository: orderingapi
       tag: latest
-    label: eshop
+    labels:
+      app: ordering-api
+      proj: eshop
     replicaCount: 1
     ports:
       - port: 8080
@@ -350,13 +421,13 @@ apps:
       ConnectionStrings__Redis: redis-svc:6379
       MessageBroker__Host: amqp://rabbitmq-svc:5672
       MessageBroker__UserName: guest
-      GrpcSettings__CatalogUrl: https://catalog.api:8080
-      Keycloak__BaseUrl: http://keycloak.identity:8080
+      GrpcSettings__CatalogUrl: http://catalog-clusterip:8080
+      Keycloak__BaseUrl: http://keycloak-clusterip:8080
       Keycloak__Realm: eshop
       Keycloak__GrantType: client_credentials      
       FeatureManagement__OrderFullfilment: "false"
-      Authentication__Authority: http://keycloak.identity:8080/realms/eshop
-      Authentication__ValidIssuer: http://id.eshop.local/realms/eshop
+      Authentication__Authority: http://keycloak-clusterip:8080/realms/eshop
+      Authentication__ValidIssuer: https://id.eshop.local/realms/eshop
     secrets:
       ConnectionStrings__Database: Server=orderdb-svc,1433; Database=OrderDb; User Id=sa; Password=Password@123; Encrypt=False; Trust Server Certificate=True
       MessageBroker__Password: guest
@@ -364,20 +435,26 @@ apps:
       Keycloak__ClientSecret: DaUNH3CoWzXmuZkPMAZ4IOpiUGZ84TW0
       Authentication__ClientId: reactApp
       Authentication__Audience: reactApp
+    readinessProbe:
+      port: 8080
+    livenessProbe:
+      port: 8080
 
   - name: yarp-api-gateway
     image:
       repository: yarpapigateway
       tag: latest
-    label: eshop
+    labels: 
+      app: yarp-api-gateway
+      proj: eshop
     replicaCount: 1
     ports:
       - port: 8080
     config:
       ASPNETCORE_ENVIRONMENT: Production
-      ALLOWED_ORIGINS: http://localhost:3000,http://localhost:6005,http://localhost:6065,https://app.eshop.local
-      Authentication__Authority: http://keycloak.identity:8080/realms/eshop
-      Authentication__ValidIssuer: http://id.eshop.local/realms/eshop
+      ALLOWED_ORIGINS: https://app.eshop.local
+      Authentication__Authority: http://keycloak-clusterip:8080/realms/eshop
+      Authentication__ValidIssuer: https://id.eshop.local/realms/eshop
     secrets:
       Authentication__ClientId: reactApp
       Authentication__Audience: reactApp
@@ -391,7 +468,9 @@ apps:
     image:
       repository: shoppingweb
       tag: latest
-    label: eshop
+    labels: 
+      app: web-client
+      proj: eshop
     replicaCount: 1
     ports:
       - port: 80

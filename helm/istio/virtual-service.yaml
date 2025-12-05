@@ -17,6 +17,7 @@ spec:
             host: web-client-clusterip.eshop.svc.cluster.local
             port:
               number: 80
+      timeout: 5s
 ---
 apiVersion: networking.istio.io/v1beta1
 kind: VirtualService
@@ -37,6 +38,7 @@ spec:
             host: yarp-api-gateway-clusterip.eshop.svc.cluster.local
             port:
               number: 80
+      timeout: 5s
 ---
 apiVersion: networking.istio.io/v1beta1
 kind: VirtualService
@@ -57,3 +59,56 @@ spec:
             host: keycloak-clusterip.eshop.svc.cluster.local
             port:
               number: 8080
+      timeout: 5s
+---
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: catalog-api
+  namespace: eshop
+spec:
+  hosts:
+    - catalog-clusterip.eshop.svc.cluster.local
+  http:
+    - match:
+        - port: 80
+          headers:
+            x-canary:
+              exact: "true"
+      route:
+        - destination:
+            host: catalog-clusterip.eshop.svc.cluster.local
+            subset: v2
+            port:
+              number: 80
+          weight: 100
+
+    - match:
+        - port: 80
+      route:
+        - destination:
+            host: catalog-clusterip.eshop.svc.cluster.local
+            port:
+              number: 80
+            subset: v1
+          weight: 70
+        - destination:
+            host: catalog-clusterip.eshop.svc.cluster.local
+            port:
+              number: 80
+            subset: v2
+          weight: 30
+      timeout: 5s
+      retries:
+        attempts: 3
+        perTryTimeout: 1s
+        retryOn: cancelled,deadline-exceeded,internal,resource-exhausted,unavailable
+        
+    - match:
+        - port: 8080
+      route:
+        - destination:
+            host: catalog-clusterip.eshop.svc.cluster.local
+            port:
+              number: 8080
+      timeout: 5s

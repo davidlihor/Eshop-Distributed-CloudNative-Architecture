@@ -7,17 +7,20 @@ metadata:
   name: {{ .name }}
   namespace: {{ $.Values.global.namespace }}
   labels:
-    app: {{ .label }}
+    {{- toYaml .labels | nindent 4 }} 
 spec:
   replicas: {{ .replicaCount }}
   selector:
     matchLabels:
-      app: {{ .name }}
+    {{- toYaml .labels | nindent 6 }} 
   template:
     metadata:
       labels:
-        app: {{ .name }}
+    {{- toYaml .labels | nindent 8 }}
     spec:
+      {{- if .sa }}
+      serviceAccountName: {{ .sa }}
+      {{- end }}
       {{- if .initContainers }}
       initContainers:
         {{- range .initContainers }}
@@ -39,7 +42,6 @@ spec:
         {{- end }}
         {{- end }}
       {{- end }}
-
       containers:
         - name: {{ .name }}
           image: {{ .image.repository }}:{{ .image.tag }}
@@ -75,6 +77,29 @@ spec:
           {{- if or .resources $.Values.defaultResources }}
           resources:
             {{- toYaml (default $.Values.defaultResources .resources) | nindent 12 }}
+          {{- end }}
+
+          {{- if hasKey . "readinessProbe" }}
+          {{- $rp := .readinessProbe | default dict }}
+          readinessProbe:
+            httpGet:
+              path: {{ default "/health" $rp.path }}
+              port: {{ default 80 $rp.port }}
+            initialDelaySeconds: {{ default 5 $rp.initialDelaySeconds }}
+            periodSeconds: {{ default 10 $rp.periodSeconds }}
+            timeoutSeconds: {{ default 2 $rp.timeoutSeconds }}
+            failureThreshold: {{ default 3 $rp.failureThreshold }}
+          {{- end }}
+          {{- if hasKey . "livenessProbe" }}
+          {{- $lp := .livenessProbe | default dict }}
+          livenessProbe:
+            httpGet:
+              path: {{ default "/health" $lp.path }}
+              port: {{ default 80 $lp.port }}
+            initialDelaySeconds: {{ default 30 $lp.initialDelaySeconds }}
+            periodSeconds: {{ default 20 $lp.periodSeconds }}
+            timeoutSeconds: {{ default 3 $lp.timeoutSeconds }}
+            failureThreshold: {{ default 3 $lp.failureThreshold }}
           {{- end }}
 
           {{- if .ports }}

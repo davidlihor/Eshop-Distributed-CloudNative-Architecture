@@ -120,6 +120,7 @@ services:
     depends_on:
       - catalogdb
       - messagebroker
+      - keycloak.identity
     ports:
       - 6000:8080
       - 6060:8081
@@ -142,6 +143,7 @@ services:
       - messagebroker
       - catalog.api
       - discount.grpc
+      - keycloak.identity
     ports:
       - 6001:8080
       - 6061:8081
@@ -157,6 +159,7 @@ services:
       Seq__ServerUrl: http://discount.seq:5341
     depends_on:
       - discount.seq
+      - keycloak.identity
     ports:
       - 6002:8080
       - 6062:8081
@@ -164,7 +167,7 @@ services:
 
   ordering.api:
     environment:
-      <<: *dotnet-common-env
+      <<: [ *dotnet-common-env, *auth-common-env ]
       ASPNETCORE_ENVIRONMENT: Development
       ConnectionStrings__Database: Server=orderdb,1433; Database=OrderDb; User Id=sa; Password=Password@123; Encrypt=False; Trust Server Certificate=True
       ConnectionStrings__Redis: distributedcache:6379
@@ -182,8 +185,8 @@ services:
       - orderdb
       - distributedcache
       - messagebroker
-      - keycloak.identity
       - catalog.api
+      - keycloak.identity
     ports:
       - 6003:8080
       - 6063:8081
@@ -198,6 +201,7 @@ services:
       - catalog.api
       - basket.api
       - ordering.api
+      - keycloak.identity
     ports:
       - 6004:8080
       - 6064:8081

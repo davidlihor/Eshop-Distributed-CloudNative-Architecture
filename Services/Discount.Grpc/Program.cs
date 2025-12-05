@@ -5,7 +5,9 @@ using Discount.Grpc.Mappings;
 using Discount.Grpc.Middleware;
 using Discount.Grpc.Services;
 using FluentValidation;
+using HealthChecks.UI.Client;
 using Mapster;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.EntityFrameworkCore;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
@@ -52,6 +54,8 @@ builder.Services.AddOpenTelemetry()
             .AddOtlpExporter();
     });
 
+builder.Services.AddHealthChecks();
+
 var app = builder.Build();
 
 app.UseAuthentication();
@@ -60,4 +64,8 @@ app.UseMigration();
 app.MapGrpcService<DiscountService>();
 app.UseMiddleware<RequestLogContextMiddleware>();
 app.UseSerilogRequestLogging();
+app.UseHealthChecks("/health", new HealthCheckOptions
+{
+    ResponseWriter = UIResponseWriter.WriteHealthCheckUIResponse
+});
 app.Run();
