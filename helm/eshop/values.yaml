@@ -183,8 +183,12 @@ apps:
       ACCEPT_EULA: "Y"
       SA_PASSWORD: Password@123
     volumes:
+      - name: mssql-conf
+        mountPath: /var/opt/mssql/mssql.conf
+        subPath: mssql.conf
+        type: configMap
       - name: order-volume
-        mountPath: /var/opt/mssql/data
+        mountPath: /var/opt/mssql/userdata
         type: pvc
 
   - name: keycloak-db
@@ -260,6 +264,7 @@ apps:
       app: keycloak-svc
       proj: eshop
     replicaCount: 1
+    sa: keycloak-sa
     args:
       - start-dev
       - --import-realm
@@ -327,6 +332,7 @@ apps:
       app: catalog-api
       version: v2
     replicaCount: 1
+    sa: catalog-sa
     ports: 
       - port: 80
       - port: 8080
@@ -356,6 +362,7 @@ apps:
       app: basket-api
       proj: eshop
     replicaCount: 1
+    sa: basket-sa
     ports:
       - port: 8080
     config:
@@ -385,6 +392,7 @@ apps:
       app: discount-grpc
       proj: eshop
     replicaCount: 1
+    sa: discount-sa
     ports:
       - port: 80
       - port: 8080
@@ -414,6 +422,7 @@ apps:
       app: ordering-api
       proj: eshop
     replicaCount: 1
+    sa: order-sa
     ports:
       - port: 8080
     config:
@@ -448,6 +457,7 @@ apps:
       app: yarp-api-gateway
       proj: eshop
     replicaCount: 1
+    sa: yarp-sa
     ports:
       - port: 8080
     config:

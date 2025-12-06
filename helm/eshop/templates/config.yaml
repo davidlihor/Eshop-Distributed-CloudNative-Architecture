@@ -16,6 +16,17 @@ data:
 apiVersion: v1
 kind: ConfigMap
 metadata:
+  name: mssql-conf
+  namespace: eshop
+data:
+  mssql.conf: |
+    [filelocation]
+    defaultdatadir = /var/opt/mssql/userdata
+    defaultlogdir = /var/opt/mssql/userdata
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
   name: keycloak-config
   namespace: {{ $.Values.global.namespace }}
 data:
