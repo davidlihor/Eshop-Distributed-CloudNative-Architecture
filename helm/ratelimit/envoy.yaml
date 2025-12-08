@@ -1,0 +1,71 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ratelimit-config
+  namespace: traffic-control
+data:
+  config.yaml: |
+    domain: ingress
+    descriptors:
+    - key: generic_key
+      value: products
+      rate_limit:
+        unit: minute
+        requests_per_unit: 100
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ratelimit
+  namespace: traffic-control
+spec:
+  replicas: 1
+  selector:
+    matchLabels: 
+      app: ratelimit
+  template:
+    metadata:
+      labels: 
+        app: ratelimit
+    spec:
+      containers:
+      - name: ratelimit
+        image: envoyproxy/ratelimit:master
+        command: ["/bin/ratelimit"]
+        args: ["-config=/data/config.yaml"]
+        env:
+        - name: REDIS_URL
+          value: redis.traffic-control.svc.cluster.local:6379
+        - name: REDIS_SOCKET_TYPE
+          value: tcp 
+        - name: LOG_LEVEL
+          value: info
+        resources:
+          limits:
+            cpu: 500m
+            memory: 512Mi
+          requests:
+            cpu: 250m
+            memory: 256Mi
+        volumeMounts:
+        - name: config
+          mountPath: /data
+        ports:
+        - containerPort: 8081
+      volumes:
+      - name: config
+        configMap:
+          name: ratelimit-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ratelimit
+  namespace: traffic-control
+spec:
+  selector: 
+    app: ratelimit
+  ports:
+  - name: grpc
+    port: 8081
+    targetPort: 8081
