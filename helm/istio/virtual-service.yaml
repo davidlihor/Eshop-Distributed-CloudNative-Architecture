@@ -1,4 +1,4 @@
-apiVersion: networking.istio.io/v1beta1
+apiVersion: networking.istio.io/v1
 kind: VirtualService
 metadata:
   name: eshop-app-vs
@@ -19,7 +19,7 @@ spec:
               number: 80
       timeout: 5s
 ---
-apiVersion: networking.istio.io/v1beta1
+apiVersion: networking.istio.io/v1
 kind: VirtualService
 metadata:
   name: eshop-api-vs
@@ -40,7 +40,7 @@ spec:
               number: 80
       timeout: 5s
 ---
-apiVersion: networking.istio.io/v1beta1
+apiVersion: networking.istio.io/v1
 kind: VirtualService
 metadata:
   name: eshop-id-vs
@@ -61,7 +61,7 @@ spec:
               number: 8080
       timeout: 5s
 ---
-apiVersion: networking.istio.io/v1beta1
+apiVersion: networking.istio.io/v1
 kind: VirtualService
 metadata:
   name: catalog-api

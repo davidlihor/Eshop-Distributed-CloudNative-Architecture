@@ -2,44 +2,76 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: ratelimit-config
-  namespace: traffic-control
+  namespace: istio-system
 data:
   config.yaml: |
-    domain: ingress
+    domain: eshop-ratelimit
     descriptors:
-    - key: generic_key
-      value: products
-      rate_limit:
-        unit: minute
-        requests_per_unit: 100
+      - key: generic_key
+        value: api
+        rate_limit:
+          unit: minute
+          requests_per_unit: 10
+
+      - key: generic_key
+        value: app
+        rate_limit:
+          unit: minute
+          requests_per_unit: 10
+
+      - key: generic_key
+        value: id
+        rate_limit:
+          unit: minute
+          requests_per_unit: 10
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: ratelimit
-  namespace: traffic-control
+  namespace: istio-system
 spec:
   replicas: 1
   selector:
-    matchLabels: 
+    matchLabels:
       app: ratelimit
+  strategy:
+    type: Recreate
   template:
     metadata:
-      labels: 
+      labels:
         app: ratelimit
     spec:
       containers:
-      - name: ratelimit
-        image: envoyproxy/ratelimit:master
+      - image: docker.io/envoyproxy/ratelimit:30a4ce1a
+        imagePullPolicy: IfNotPresent
+        name: ratelimit
         command: ["/bin/ratelimit"]
-        args: ["-config=/data/config.yaml"]
         env:
         - name: REDIS_URL
-          value: redis.traffic-control.svc.cluster.local:6379
+          value: redis:6379
         - name: REDIS_SOCKET_TYPE
-          value: tcp 
+          value: tcp
         - name: LOG_LEVEL
-          value: info
+          value: debug
+        - name: USE_STATSD
+          value: "false"
+        - name: RUNTIME_ROOT
+          value: /data
+        - name: RUNTIME_SUBDIRECTORY
+          value: ratelimit
+        - name: RUNTIME_WATCH_ROOT
+          value: "false"
+        - name: RUNTIME_IGNOREDOTFILES
+          value: "true"
+        - name: HOST
+          value: "::"
+        - name: GRPC_HOST
+          value: "::"
+        ports:
+        - containerPort: 8080
+        - containerPort: 8081
+        - containerPort: 6070
         resources:
           limits:
             cpu: 500m
@@ -48,12 +80,10 @@ spec:
             cpu: 250m
             memory: 256Mi
         volumeMounts:
-        - name: config
-          mountPath: /data
-        ports:
-        - containerPort: 8081
+        - name: config-volume
+          mountPath: /data/ratelimit/config
       volumes:
-      - name: config
+      - name: config-volume
         configMap:
           name: ratelimit-config
 ---
@@ -61,11 +91,22 @@ apiVersion: v1
 kind: Service
 metadata:
   name: ratelimit
-  namespace: traffic-control
+  namespace: istio-system
+  labels:
+    app: ratelimit
 spec:
-  selector: 
+  selector:
     app: ratelimit
   ports:
-  - name: grpc
+  - name: http-port
+    port: 8080
+    targetPort: 8080
+    protocol: TCP
+  - name: grpc-port
     port: 8081
     targetPort: 8081
+    protocol: TCP
+  - name: http-debug
+    port: 6070
+    targetPort: 6070
+    protocol: TCP

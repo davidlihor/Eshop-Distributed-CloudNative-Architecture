@@ -1,4 +1,4 @@
-apiVersion: security.istio.io/v1beta1
+apiVersion: security.istio.io/v1
 kind: AuthorizationPolicy
 metadata:
   name: deny-from-outside-trusted-namespaces
@@ -12,7 +12,7 @@ spec:
     - source:
         notNamespaces: ["eshop","istio-system"]
 ---
-apiVersion: security.istio.io/v1beta1
+apiVersion: security.istio.io/v1
 kind: AuthorizationPolicy
 metadata:
   name: allow-catalog-to-catalogdb
@@ -30,7 +30,7 @@ spec:
     - operation:
         ports: ["5432"]
 ---
-apiVersion: security.istio.io/v1beta1
+apiVersion: security.istio.io/v1
 kind: AuthorizationPolicy
 metadata:
   name: allow-basket-to-basketdb
@@ -48,7 +48,7 @@ spec:
     - operation:
         ports: ["5432"]
 ---
-apiVersion: security.istio.io/v1beta1
+apiVersion: security.istio.io/v1
 kind: AuthorizationPolicy
 metadata:
   name: allow-ordering-to-orderdb
@@ -66,7 +66,7 @@ spec:
     - operation:
         ports: ["1433"]
 ---
-apiVersion: security.istio.io/v1beta1
+apiVersion: security.istio.io/v1
 kind: AuthorizationPolicy
 metadata:
   name: allow-keycloak-to-keycloakdb
@@ -84,7 +84,7 @@ spec:
     - operation:
         ports: ["5432"]
 ---
-apiVersion: security.istio.io/v1beta1
+apiVersion: security.istio.io/v1
 kind: AuthorizationPolicy
 metadata:
   name: allow-services-to-redis
@@ -104,7 +104,7 @@ spec:
     - operation:
         ports: ["6379"]
 ---
-apiVersion: security.istio.io/v1beta1
+apiVersion: security.istio.io/v1
 kind: AuthorizationPolicy
 metadata:
   name: allow-services-to-rabbitmq
@@ -132,7 +132,7 @@ spec:
     - operation:
         ports: ["15672"]
 ---
-apiVersion: security.istio.io/v1beta1
+apiVersion: security.istio.io/v1
 kind: AuthorizationPolicy
 metadata:
   name: allow-services-to-seq
@@ -156,7 +156,7 @@ spec:
     - operation:
         ports: ["80"]
 ---
-apiVersion: security.istio.io/v1beta1
+apiVersion: security.istio.io/v1
 kind: AuthorizationPolicy
 metadata:
   name: allow-services-to-keycloak
@@ -180,7 +180,7 @@ spec:
     - operation:
         ports: ["8080"]
 ---
-apiVersion: security.istio.io/v1beta1
+apiVersion: security.istio.io/v1
 kind: AuthorizationPolicy
 metadata:
   name: allow-services-to-catalog
@@ -207,7 +207,7 @@ spec:
     - operation:
         ports: ["80"]
 ---
-apiVersion: security.istio.io/v1beta1
+apiVersion: security.istio.io/v1
 kind: AuthorizationPolicy
 metadata:
   name: allow-services-to-basket
@@ -226,7 +226,7 @@ spec:
     - operation:
         ports: ["8080"] 
 ---
-apiVersion: security.istio.io/v1beta1
+apiVersion: security.istio.io/v1
 kind: AuthorizationPolicy
 metadata:
   name: allow-services-to-discount
@@ -252,7 +252,7 @@ spec:
     - operation:
         ports: ["80"]
 ---
-apiVersion: security.istio.io/v1beta1
+apiVersion: security.istio.io/v1
 kind: AuthorizationPolicy
 metadata:
   name: allow-ingress-to-yarp
@@ -270,7 +270,7 @@ spec:
     - operation:
         ports: ["8080"]
 ---
-apiVersion: security.istio.io/v1beta1
+apiVersion: security.istio.io/v1
 kind: AuthorizationPolicy
 metadata:
   name: allow-ingress-to-webclient
