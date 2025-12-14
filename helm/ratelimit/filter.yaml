@@ -64,7 +64,7 @@ spec:
     labels:
       istio: ingressgateway
   configPatches:
-  - applyTo: VIRTUAL_HOST
+  - applyTo: HTTP_ROUTE
     match:
       context: GATEWAY
       routeConfiguration:
@@ -78,9 +78,14 @@ spec:
             "@type": type.googleapis.com/envoy.extensions.filters.http.ratelimit.v3.RateLimitPerRoute
             rate_limits:
             - actions:
+              - request_headers:
+                  header_name: Authorization
+                  descriptor_key: auth_token
+                  skip_if_absent: true
               - generic_key:
                   descriptor_value: api
-  - applyTo: VIRTUAL_HOST
+              - remote_address: {}
+  - applyTo: HTTP_ROUTE
     match:
       context: GATEWAY
       routeConfiguration:
@@ -94,9 +99,14 @@ spec:
             "@type": type.googleapis.com/envoy.extensions.filters.http.ratelimit.v3.RateLimitPerRoute
             rate_limits:
             - actions:
+              - request_headers:
+                  header_name: Authorization
+                  descriptor_key: auth_token
+                  skip_if_absent: true
               - generic_key:
                   descriptor_value: app
-  - applyTo: VIRTUAL_HOST
+              - remote_address: {}
+  - applyTo: HTTP_ROUTE
     match:
       context: GATEWAY
       routeConfiguration:
@@ -110,5 +120,10 @@ spec:
             "@type": type.googleapis.com/envoy.extensions.filters.http.ratelimit.v3.RateLimitPerRoute
             rate_limits:
             - actions:
+              - request_headers:
+                  header_name: Authorization
+                  descriptor_key: auth_token
+                  skip_if_absent: true
               - generic_key:
                   descriptor_value: id
+              - remote_address: {}

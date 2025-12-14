@@ -20,7 +20,8 @@ function App() {
     setLoading(false)
   }, [dispatch, user])
   
-  const [darkMode, setDarkMode] = useState(false);
+  const darkModeValue = localStorage.getItem("darkMode") === "true" ? true : false
+  const [darkMode, setDarkMode] = useState(darkModeValue);
   const palleteType = darkMode ? 'dark' : 'light';
   const theme = createTheme({
     palette: {
@@ -33,6 +34,7 @@ function App() {
 
   function handleThemeChange() {
     setDarkMode(!darkMode);
+    localStorage.setItem("darkMode", (!darkMode).toString());
   }
 
   return (

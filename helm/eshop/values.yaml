@@ -1,6 +1,9 @@
 global:
   istioInjection: true
   namespace: eshop
+  imagePullPolicy: IfNotPresent
+  revisionHistoryLimit: 5
+  terminationGracePeriodSeconds: 20
 defaultResources:
   limits:
     cpu: "1"
@@ -137,6 +140,7 @@ apps:
       app: catalog-db
       proj: eshop
     replicaCount: 1
+    revisionHistoryLimit: 2
     ports: 
       - port: 5432
     secrets:
@@ -157,6 +161,7 @@ apps:
       app: basket-db
       proj: eshop
     replicaCount: 1
+    revisionHistoryLimit: 2
     ports:
       - port: 5432
     secrets:
@@ -177,6 +182,7 @@ apps:
       app: order-db
       proj: eshop
     replicaCount: 1
+    revisionHistoryLimit: 2
     ports:
       - port: 1433
     secrets:

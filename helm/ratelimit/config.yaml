@@ -1,0 +1,61 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ratelimit-config
+  namespace: istio-system
+data:
+  config.yaml: |
+    domain: eshop-ratelimit
+    descriptors:
+      - key: auth_token
+        value: "*"
+        descriptors:
+          - key: generic_key
+            value: api
+            descriptors:
+              - key: remote_address
+                value: "*"
+                rate_limit:
+                  unit: minute
+                  requests_per_unit: 25
+          - key: generic_key
+            value: app
+            descriptors:
+              - key: remote_address
+                value: "*"
+                rate_limit:
+                  unit: minute
+                  requests_per_unit: 50
+          - key: generic_key
+            value: id
+            descriptors:
+              - key: remote_address
+                value: "*"
+                rate_limit:
+                  unit: minute
+                  requests_per_unit: 25
+
+      - key: generic_key
+        value: api
+        descriptors:
+          - key: remote_address
+            value: "*"
+            rate_limit:
+              unit: minute
+              requests_per_unit: 75
+      - key: generic_key
+        value: app
+        descriptors:
+          - key: remote_address
+            value: "*"
+            rate_limit:
+              unit: minute
+              requests_per_unit: 100
+      - key: generic_key
+        value: id
+        descriptors:
+          - key: remote_address
+            value: "*"
+            rate_limit:
+              unit: minute
+              requests_per_unit: 50

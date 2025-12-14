@@ -9,6 +9,7 @@ metadata:
   labels:
     {{- toYaml .labels | nindent 4 }} 
 spec:
+  revisionHistoryLimit: {{ coalesce .revisionHistoryLimit $.Values.global.revisionHistoryLimit 5 }}
   replicas: {{ .replicaCount }}
   selector:
     matchLabels:
@@ -18,6 +19,7 @@ spec:
       labels:
     {{- toYaml .labels | nindent 8 }}
     spec:
+      terminationGracePeriodSeconds: {{ coalesce .terminationGracePeriodSeconds $.Values.global.terminationGracePeriodSeconds 20 }}
       {{- if .sa }}
       serviceAccountName: {{ .sa }}
       {{- end }}
@@ -45,6 +47,7 @@ spec:
       containers:
         - name: {{ .name }}
           image: {{ .image.repository }}:{{ .image.tag }}
+          imagePullPolicy: {{ coalesce .imagePullPolicy $.Values.global.imagePullPolicy "IfNotPresent" }}
           {{- if or .config .secrets }}
           env:
             {{- if .config }}
