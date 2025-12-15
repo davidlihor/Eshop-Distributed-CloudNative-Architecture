@@ -1,0 +1,191 @@
+variables:
+  DOCKER_REGISTRY: $CI_REGISTRY
+
+stages:
+  - secrets-scan
+  - lint-and-test
+  - code-quality
+  - build
+  - docker-build
+
+lint-and-test:
+  stage: lint-and-test
+  parallel:
+    matrix:
+      - SERVICE: "Catalog.API"
+        DOTNET: "9.0"
+      - SERVICE: "Basket.API"
+        DOTNET: "9.0"
+      - SERVICE: "Discount.Grpc"
+        DOTNET: "9.0"
+      - SERVICE: "Ordering/Ordering.API"
+        DOTNET: "9.0"
+  image: mcr.microsoft.com/dotnet/sdk:${DOTNET}
+  rules:
+    - changes:
+        - "Services/${SERVICE}/**/*"
+  cache:
+    key: "dotnet-${CI_COMMIT_REF_SLUG}"
+    paths:
+      - .nuget/packages/
+  script:
+    - dotnet restore Services/${SERVICE}
+    - dotnet format Services/${SERVICE} --verify-no-changes
+    - |
+      if [ -d "Services/${SERVICE}/Tests" ]; then
+        for testproj in $(find Services/${SERVICE}/Tests -name "*.csproj"); do
+          echo "Running tests for $testproj"
+          dotnet test "$testproj" --filter Category=Unit
+          dotnet test "$testproj" --filter Category=Integration
+        done
+      else
+        echo "No tests found for ${SERVICE}"
+      fi
+
+code-quality:
+  stage: code-quality
+  parallel:
+    matrix:
+      - SERVICE: "Catalog.API"
+        DOTNET: "9.0"
+      - SERVICE: "Basket.API"
+        DOTNET: "9.0"
+      - SERVICE: "Discount.Grpc"
+        DOTNET: "9.0"
+      - SERVICE: "Ordering/Ordering.API"
+        DOTNET: "9.0"
+  image: mcr.microsoft.com/dotnet/sdk:${DOTNET}
+  rules:
+    - changes:
+        - "Services/${SERVICE}/**/*"
+  cache:
+    key: "dotnet-${CI_COMMIT_REF_SLUG}"
+    paths:
+      - .nuget/packages/
+  script:
+    - dotnet tool install --global dotnet-sonarscanner
+    - dotnet tool install --global dotnet-reportgenerator-globaltool
+    - dotnet sonarscanner begin \
+        /k:"${SERVICE}" \
+        /o:"${SONAR_ORGANIZATION}" \
+        /d:sonar.host.url="${SONAR_URL}" \
+        /d:sonar.login="${SONAR_TOKEN}" \
+        /d:sonar.sources="Services/${SERVICE}" \
+        /d:sonar.exclusions="**/bin/**,**/obj/**" \
+        /d:sonar.cs.opencover.reportsPaths="coverage/coverage.opencover.xml" \
+        /d:sonar.cs.vstest.reportsPaths="TestResults/*.trx"
+
+    - |
+      if [ -d "Services/${SERVICE}/Tests" ]; then
+        for testproj in $(find Services/${SERVICE}/Tests -name "*.csproj"); do
+          echo "Running tests for $testproj"
+          dotnet test "$testproj" \
+            --collect:"XPlat Code Coverage" \
+            --results-directory "TestResults"
+        done
+      else
+        echo "No tests found for ${SERVICE}"
+      fi
+
+    - reportgenerator \
+        -reports:"TestResults/**/coverage.cobertura.xml" \
+        -targetdir:"coverage" \
+        -reporttypes:opencover
+  
+    - dotnet sonarscanner end /d:sonar.login="$SONAR_TOKEN"
+    - dotnet list Services/${SERVICE} package --vulnerable
+
+secrets-scan:
+  stage: secrets-scan
+  image: 
+    name: zricethezav/gitleaks:latest
+    entrypoint: [""]
+  variables:
+    GITLEAKS_REDACT: "true" 
+  script:
+    - gitleaks detect \
+        --source=. \
+        --report-format=json \
+        --report-path=gitleaks-report.json
+  allow_failure: false 
+  artifacts:
+    paths:
+      - gitleaks-report.json
+    expire_in: 1 day
+
+build:
+  stage: build
+  needs:
+    - lint-and-test
+    - code-quality
+  parallel:
+    matrix:
+      - SERVICE: "Catalog.API"
+        DOTNET: "9.0"
+      - SERVICE: "Basket.API"
+        DOTNET: "9.0"
+      - SERVICE: "Discount.Grpc"
+        DOTNET: "9.0"
+      - SERVICE: "Ordering/Ordering.API"
+        DOTNET: "9.0"
+  image: mcr.microsoft.com/dotnet/sdk:${DOTNET}
+  rules:
+  - changes:
+      - "Services/${SERVICE}/**/*"
+  script:
+    - dotnet publish Services/${SERVICE} -c Release -o publish/${SERVICE}
+  artifacts:
+    paths:
+      - publish/${SERVICE}
+
+docker-build:
+  stage: docker-build
+  needs:
+    - secrets-scan
+    - build
+  parallel:
+    matrix:
+      - SERVICE: "Catalog.API"
+        IMAGE_NAME: catalogapi
+      - SERVICE: "Basket.API"
+        IMAGE_NAME: basketapi
+      - SERVICE: "Discount.Grpc"
+        IMAGE_NAME: discountgrpc
+      - SERVICE: "Ordering/Ordering.API"
+        IMAGE_NAME: orderingapi
+  image: docker:latest
+  services:
+    - docker:dind
+  variables:
+    DOCKER_TLS_CERTDIR: ""
+    FULL_IMAGE_PATH: "$CI_REGISTRY_IMAGE/$IMAGE_NAME"
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      changes:
+        - Services/${SERVICE}/**/*
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      changes:
+        - Services/${SERVICE}/**/*
+    - when: never
+  script:
+    - docker build \
+        -t $IMAGE_NAME:candidate \
+        -f Services/${SERVICE}/Dockerfile \
+        Services/${SERVICE}
+
+    - docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
+        aquasec/trivy:0.68.1 image \
+        --exit-code 0 \
+        --severity HIGH,CRITICAL \
+        --format gl-container-scanning-report \
+        --output gl-trivy-container-scanning-report-$IMAGE_NAME.json \
+        $IMAGE_NAME:candidate
+
+    - docker tag $IMAGE_NAME:candidate $FULL_IMAGE_PATH:$CI_COMMIT_SHA
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $DOCKER_REGISTRY
+    - docker push $FULL_IMAGE_PATH:$CI_COMMIT_SHA
+  artifacts:
+    reports:
+      container_scanning: gl-trivy-container-scanning-report-$IMAGE_NAME.json
+    expire_in: 1 week
+
