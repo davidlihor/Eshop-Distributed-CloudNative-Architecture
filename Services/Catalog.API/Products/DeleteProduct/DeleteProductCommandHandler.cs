@@ -24,7 +24,7 @@ internal class DeleteProductCommandHandler(
         session.Delete<Product>(command.Id);
         await session.SaveChangesAsync(cancellationToken);
         await publishEndpoint.Publish(new ProductDeletedEvent { Id = command.Id }, cancellationToken);
-        
+
         return new DeleteProductResult(true);
     }
 }

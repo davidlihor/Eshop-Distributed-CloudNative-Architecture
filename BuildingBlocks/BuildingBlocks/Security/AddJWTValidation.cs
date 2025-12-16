@@ -33,7 +33,7 @@ public static class AddJwtValidation
                 {
                     if (context.Principal?.Identity is not ClaimsIdentity claimsIdentity) return Task.CompletedTask;
 
-                    var resourceAccess = context?.Principal?.FindFirst("resource_access")?.Value;                      
+                    var resourceAccess = context?.Principal?.FindFirst("resource_access")?.Value;
                     if (!string.IsNullOrWhiteSpace(resourceAccess))
                     {
                         try
@@ -77,7 +77,7 @@ public static class AddJwtValidation
                         }
                         catch { }
                     }
-                    
+
                     return Task.CompletedTask;
                 }
             };
@@ -90,13 +90,13 @@ public static class AddJwtValidation
         services.AddAuthorizationBuilder()
             .AddPolicy("AdminPolicy", policy =>
                 policy.Requirements.Add(new RoleRequirement(UserRole.Admin)))
-            .AddPolicy("EmployeePolicy", policy => 
+            .AddPolicy("EmployeePolicy", policy =>
                 policy.Requirements.Add(new RoleRequirement(UserRole.Employee)))
             .AddPolicy("CustomerPolicy", policy =>
                 policy.Requirements.Add(new RoleRequirement(UserRole.Customer)));
-        
+
         services.AddSingleton<IAuthorizationHandler, RoleRequirementHandler>();
-        
+
         return services;
     }
 }

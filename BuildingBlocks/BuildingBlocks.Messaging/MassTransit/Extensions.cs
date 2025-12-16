@@ -14,7 +14,7 @@ public static class Extensions
         {
             config.SetKebabCaseEndpointNameFormatter();
             if (assembly != null) config.AddConsumers(assembly);
-            
+
             config.UsingRabbitMq((context, configurator) =>
             {
                 configurator.Host(new Uri(configuration["MessageBroker:Host"]!), host =>
@@ -25,7 +25,7 @@ public static class Extensions
                 configurator.ConfigureEndpoints(context);
             });
         });
-        
+
         return services;
     }
 }

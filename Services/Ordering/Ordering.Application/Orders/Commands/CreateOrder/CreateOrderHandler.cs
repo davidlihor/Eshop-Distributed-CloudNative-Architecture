@@ -87,10 +87,10 @@ public class CreateOrderHandler(
             {
                 await cacheService.SetAsync(redisKey, "not_found", TimeSpan.FromMinutes(10));
             }
-            
+
             foreach (var missingId in missingIds) order.Remove(ProductId.Of(missingId));
         }
-        
+
         if (foundInRedis.Count != 0)
         {
             dbContext.Orders.Add(order);

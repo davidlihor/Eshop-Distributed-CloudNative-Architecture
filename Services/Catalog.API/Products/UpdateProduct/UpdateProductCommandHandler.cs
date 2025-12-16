@@ -30,11 +30,11 @@ internal class UpdateProductCommandHandler(
         if (product is null) throw new ProductNotFoundException(command.Id);
 
         product = command.Adapt(product);
-        
+
         session.Update(product);
         await session.SaveChangesAsync(cancellationToken);
         await publishEndpoint.Publish(product.Adapt<ProductUpdatedEvent>(), cancellationToken);
-        
+
         return new UpdateProductResult(true);
     }
 }

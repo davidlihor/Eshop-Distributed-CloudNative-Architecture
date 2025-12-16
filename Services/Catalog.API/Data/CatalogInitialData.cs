@@ -13,7 +13,7 @@ public class CatalogInitialData : IInitialData
         await session.SaveChangesAsync(cancellationToken);
     }
 
-    private static IEnumerable<Product> GetPreconfiguredProducts() => 
+    private static IEnumerable<Product> GetPreconfiguredProducts() =>
     [
         new()
         {

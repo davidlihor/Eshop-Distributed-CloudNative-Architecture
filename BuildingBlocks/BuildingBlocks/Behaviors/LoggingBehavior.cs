@@ -17,12 +17,12 @@ public class LoggingBehavior<TRequest, TResponse>
 
         var timer = new Stopwatch();
         timer.Start();
-        
+
         var response = await next();
-        
+
         timer.Stop();
         var timeTaken = timer.Elapsed.Seconds;
-        
+
         if (timeTaken > 3)
             logger.LogWarning("[PERFORMANCE] The request {Request} took {TimeTaken}s", typeof(TRequest).Name, timeTaken);
 

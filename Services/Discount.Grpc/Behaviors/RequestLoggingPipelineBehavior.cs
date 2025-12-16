@@ -5,15 +5,15 @@ namespace Discount.Grpc.Behaviors;
 
 public sealed class RequestLoggingPipelineBehavior<TRequest, TResponse>
     (ILogger<RequestLoggingPipelineBehavior<TRequest, TResponse>> logger)
-    : IPipelineBehavior<TRequest, TResponse> 
+    : IPipelineBehavior<TRequest, TResponse>
     where TRequest : class
     // where TResponse : Result
 {
-    
-    
+
+
     public async Task<TResponse> Handle(
-        TRequest request, 
-        RequestHandlerDelegate<TResponse> next, 
+        TRequest request,
+        RequestHandlerDelegate<TResponse> next,
         CancellationToken cancellationToken)
     {
         var requestName = typeof(TRequest).Name;
@@ -29,10 +29,10 @@ public sealed class RequestLoggingPipelineBehavior<TRequest, TResponse>
         {
             using (LogContext.PushProperty("Error", result.ToString(), true))
             {
-                logger.LogError("Completed request {RequestName} with error", requestName);   
+                logger.LogError("Completed request {RequestName} with error", requestName);
             }
         }
-        
+
         return result;
     }
 }

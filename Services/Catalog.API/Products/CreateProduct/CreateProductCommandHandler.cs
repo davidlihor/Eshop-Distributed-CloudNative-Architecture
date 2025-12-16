@@ -19,7 +19,7 @@ public class CreateProductCommandValidator : AbstractValidator<CreateProductComm
 
 internal class CreateProductCommandHandler(
     IDocumentSession session,
-    IPublishEndpoint publishEndpoint) 
+    IPublishEndpoint publishEndpoint)
     : ICommandHandler<CreateProductCommand, CreateProductResult>
 {
     public async Task<CreateProductResult> Handle(CreateProductCommand command, CancellationToken cancellationToken)
@@ -31,11 +31,11 @@ internal class CreateProductCommandHandler(
             command.Quantity,
             command.Category,
             command.Specifications);
-        
+
         session.Store(product);
         await session.SaveChangesAsync(cancellationToken);
         await publishEndpoint.Publish(product.Adapt<ProductCreatedEvent>(), cancellationToken);
-        
+
         return new CreateProductResult(product.Id);
     }
 }

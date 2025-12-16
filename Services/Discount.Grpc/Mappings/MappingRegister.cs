@@ -10,7 +10,8 @@ public class MappingRegister : IRegister
     {
         config.Default.NameMatchingStrategy(NameMatchingStrategy.Flexible).IgnoreNullValues(true);
         config.NewConfig<CouponModel, Coupon>()
-            .ConstructUsing(src => new Coupon {
+            .ConstructUsing(src => new Coupon
+            {
                 Id = src.Id,
                 ProductId = Guid.Parse(src.ProductId),
                 CouponCode = src.CouponCode,

@@ -21,7 +21,7 @@ public static class OrderExtensions
         }
         return newOrder;
     }
-    
+
     public static IEnumerable<OrderDto> ToOrderDtoList(this IEnumerable<Order> orders)
     {
         return orders.Select(order => new OrderDto(
@@ -56,7 +56,7 @@ public static class OrderExtensions
             ),
             Status: order.Status,
             OrderItems: order.OrderItems.Select(oi => new OrderItemDto(
-                oi.OrderId.Value, 
+                oi.OrderId.Value,
                 oi.ProductId.Value,
                 oi.Quantity,
                 oi.Price)
@@ -98,7 +98,7 @@ public static class OrderExtensions
             ),
             Status: order.Status,
             OrderItems: order.OrderItems.Select(oi => new OrderItemDto(
-                oi.OrderId.Value, 
+                oi.OrderId.Value,
                 oi.ProductId.Value,
                 oi.Quantity,
                 oi.Price)

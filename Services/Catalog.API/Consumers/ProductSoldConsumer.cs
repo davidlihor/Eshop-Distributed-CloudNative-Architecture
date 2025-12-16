@@ -8,7 +8,7 @@ public class ProductSoldConsumer(IDocumentSession session) : IConsumer<ProductSo
     public async Task Consume(ConsumeContext<ProductSoldEvent> context)
     {
         var ids = context.Message.ProductsSold.Select(x => x.Id).ToList();
-        
+
         var existingProducts = await session.Query<Product>()
             .Where(p => ids.Contains(p.Id))
             .ToListAsync();
@@ -23,7 +23,7 @@ public class ProductSoldConsumer(IDocumentSession session) : IConsumer<ProductSo
                 session.Update(product);
             }
         }
-        
+
         await session.SaveChangesAsync(context.CancellationToken);
     }
 }

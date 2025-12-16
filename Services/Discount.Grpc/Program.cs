@@ -38,7 +38,7 @@ builder.Host.UseSerilog((context, loggerConfig) =>
 {
     loggerConfig.ReadFrom.Configuration(context.Configuration);
     var seqUrl = context.Configuration.GetValue<string>("Seq:ServerUrl");
-    
+
     if (!string.IsNullOrWhiteSpace(seqUrl))
     {
         loggerConfig.WriteTo.Seq(seqUrl);

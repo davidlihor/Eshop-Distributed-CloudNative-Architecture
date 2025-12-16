@@ -82,7 +82,7 @@ public class DiscountService(
     {
         var coupon = await dbContext.Coupons.FirstOrDefaultAsync(x => x.Id == request.DiscountId) ??
             throw new RpcException(new Status(StatusCode.NotFound, $"Discount with Id \"{request.DiscountId}\" not found."));
-    
+
         dbContext.Coupons.Remove(coupon);
         await dbContext.SaveChangesAsync();
 

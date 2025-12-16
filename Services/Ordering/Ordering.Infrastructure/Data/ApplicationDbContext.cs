@@ -2,7 +2,7 @@
 using Ordering.Application.Common;
 
 namespace Ordering.Infrastructure.Data;
-public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) 
+public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
     : DbContext(options), IApplicationDbContext
 {
     public DbSet<Customer> Customers => Set<Customer>();

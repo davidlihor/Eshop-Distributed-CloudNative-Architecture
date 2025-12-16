@@ -40,7 +40,7 @@ public class Product
     {
         var specification = Specifications.Find(s => s.Key == key);
         if (specification == null) return;
-        
+
         Specifications.Remove(specification);
         specification.Order = newOrder;
         Specifications.Add(specification);

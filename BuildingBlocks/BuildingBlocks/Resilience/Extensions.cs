@@ -10,7 +10,7 @@ namespace BuildingBlocks.Resilience;
 public static class Extensions
 {
     public static IServiceCollection AddResilienceGrpcClient<TClient>(
-        this IServiceCollection services, 
+        this IServiceCollection services,
         IConfiguration config,
         IHostEnvironment environment,
         string grpcSettingsKey) where TClient : class
@@ -21,8 +21,8 @@ public static class Extensions
         })
         .ConfigurePrimaryHttpMessageHandler(() =>
         {
-            var handler = new HttpClientHandler(); 
-            if (environment.IsDevelopment()) 
+            var handler = new HttpClientHandler();
+            if (environment.IsDevelopment())
             {
                 handler.ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator;
             }
@@ -39,13 +39,13 @@ public static class Extensions
                 MaxRetryAttempts = 5,
                 OnRetry = args =>
                 {
-                    logger?.LogWarning("Delaying for {TotalSeconds} seconds, then making retry {AttemptNumber}", 
+                    logger?.LogWarning("Delaying for {TotalSeconds} seconds, then making retry {AttemptNumber}",
                         args.Duration.TotalSeconds, args.AttemptNumber);
                     return ValueTask.CompletedTask;
                 },
                 DelayGenerator = args =>
                 {
-                    var delay = TimeSpan.FromSeconds(Math.Pow(2, args.AttemptNumber - 1)) 
+                    var delay = TimeSpan.FromSeconds(Math.Pow(2, args.AttemptNumber - 1))
                                        + TimeSpan.FromMilliseconds(random.Next(1000));
                     return new ValueTask<TimeSpan?>(delay);
                 }
@@ -64,7 +64,7 @@ public static class Extensions
                 {
                     logger?.LogInformation("Circuit opened: {Exception}, Duration: for {TotalSeconds} seconds",
                         args.Outcome.Exception, args.BreakDuration.TotalSeconds);
-                    return default; 
+                    return default;
                 },
                 OnClosed = _ =>
                 {
@@ -73,7 +73,7 @@ public static class Extensions
                 }
             });
         });
-        
+
         return services;
     }
 }

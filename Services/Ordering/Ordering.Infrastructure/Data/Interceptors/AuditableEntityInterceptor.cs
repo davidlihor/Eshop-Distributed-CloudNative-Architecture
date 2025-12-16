@@ -30,17 +30,17 @@ public class AuditableEntityInterceptor : SaveChangesInterceptor
             }
 
             if (entry.State == EntityState.Modified || entry.HasChangedOwnedEntities()) continue;
-                entry.Entity.LastModifiedBy = "david";
-                entry.Entity.LastModified = DateTime.UtcNow;
+            entry.Entity.LastModifiedBy = "david";
+            entry.Entity.LastModified = DateTime.UtcNow;
         }
     }
 }
 
 public static class Extensions
 {
-    public static bool HasChangedOwnedEntities(this EntityEntry entry) => 
-        entry.References.Any(r => 
-        r.TargetEntry is not null && 
-        r.TargetEntry.Metadata.IsOwned() && 
+    public static bool HasChangedOwnedEntities(this EntityEntry entry) =>
+        entry.References.Any(r =>
+        r.TargetEntry is not null &&
+        r.TargetEntry.Metadata.IsOwned() &&
         r.TargetEntry.State == EntityState.Modified);
 }

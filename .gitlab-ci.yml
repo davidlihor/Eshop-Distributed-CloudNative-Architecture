@@ -5,11 +5,33 @@ stages:
   - secrets-scan
   - lint-and-test
   - code-quality
-  - build
   - docker-build
+
+secrets-scan:
+  stage: secrets-scan
+  image: 
+    name: zricethezav/gitleaks:latest
+    entrypoint: [""]
+  script:
+    - |
+      gitleaks detect \
+        --no-git \
+        --redact \
+        --source . \
+        --config .gitleaks.toml \
+        --report-format json \
+        --report-path gitleaks-report.json
+  allow_failure: false 
+  artifacts:
+    when: always
+    paths:
+      - gitleaks-report.json
+    expire_in: 1 day
 
 lint-and-test:
   stage: lint-and-test
+  needs:
+    - secrets-scan
   parallel:
     matrix:
       - SERVICE: "Catalog.API"
@@ -48,16 +70,20 @@ code-quality:
     matrix:
       - SERVICE: "Catalog.API"
         DOTNET: "9.0"
+        PATH_DIR: "Catalog.API"
       - SERVICE: "Basket.API"
         DOTNET: "9.0"
+        PATH_DIR: "Basket.API"
       - SERVICE: "Discount.Grpc"
         DOTNET: "9.0"
-      - SERVICE: "Ordering/Ordering.API"
+        PATH_DIR: "Discount.Grpc"
+      - SERVICE: "Ordering.API"
         DOTNET: "9.0"
+        PATH_DIR: "Ordering/Ordering.API"
   image: mcr.microsoft.com/dotnet/sdk:${DOTNET}
   rules:
     - changes:
-        - "Services/${SERVICE}/**/*"
+        - "Services/${PATH_DIR}/**/*"
   cache:
     key: "dotnet-${CI_COMMIT_REF_SLUG}"
     paths:
@@ -65,16 +91,19 @@ code-quality:
   script:
     - dotnet tool install --global dotnet-sonarscanner
     - dotnet tool install --global dotnet-reportgenerator-globaltool
-    - dotnet sonarscanner begin \
+    - export PATH="$PATH:/root/.dotnet/tools"
+    - |
+      dotnet sonarscanner begin \
         /k:"${SERVICE}" \
         /o:"${SONAR_ORGANIZATION}" \
         /d:sonar.host.url="${SONAR_URL}" \
         /d:sonar.login="${SONAR_TOKEN}" \
-        /d:sonar.sources="Services/${SERVICE}" \
+        /d:sonar.sources="Services/${PATH_DIR}" \
         /d:sonar.exclusions="**/bin/**,**/obj/**" \
         /d:sonar.cs.opencover.reportsPaths="coverage/coverage.opencover.xml" \
         /d:sonar.cs.vstest.reportsPaths="TestResults/*.trx"
-
+    
+    - dotnet build Services/${PATH_DIR} -c Release
     - |
       if [ -d "Services/${SERVICE}/Tests" ]; then
         for testproj in $(find Services/${SERVICE}/Tests -name "*.csproj"); do
@@ -87,105 +116,91 @@ code-quality:
         echo "No tests found for ${SERVICE}"
       fi
 
-    - reportgenerator \
+    - |
+      reportgenerator \
         -reports:"TestResults/**/coverage.cobertura.xml" \
         -targetdir:"coverage" \
         -reporttypes:opencover
   
     - dotnet sonarscanner end /d:sonar.login="$SONAR_TOKEN"
-    - dotnet list Services/${SERVICE} package --vulnerable
-
-secrets-scan:
-  stage: secrets-scan
-  image: 
-    name: zricethezav/gitleaks:latest
-    entrypoint: [""]
-  variables:
-    GITLEAKS_REDACT: "true" 
-  script:
-    - gitleaks detect \
-        --source=. \
-        --report-format=json \
-        --report-path=gitleaks-report.json
-  allow_failure: false 
-  artifacts:
-    paths:
-      - gitleaks-report.json
-    expire_in: 1 day
-
-build:
-  stage: build
-  needs:
-    - lint-and-test
-    - code-quality
-  parallel:
-    matrix:
-      - SERVICE: "Catalog.API"
-        DOTNET: "9.0"
-      - SERVICE: "Basket.API"
-        DOTNET: "9.0"
-      - SERVICE: "Discount.Grpc"
-        DOTNET: "9.0"
-      - SERVICE: "Ordering/Ordering.API"
-        DOTNET: "9.0"
-  image: mcr.microsoft.com/dotnet/sdk:${DOTNET}
-  rules:
-  - changes:
-      - "Services/${SERVICE}/**/*"
-  script:
-    - dotnet publish Services/${SERVICE} -c Release -o publish/${SERVICE}
-  artifacts:
-    paths:
-      - publish/${SERVICE}
+    - dotnet list Services/${PATH_DIR} package --vulnerable
 
 docker-build:
   stage: docker-build
   needs:
-    - secrets-scan
-    - build
+    - lint-and-test
   parallel:
     matrix:
-      - SERVICE: "Catalog.API"
+      - PATH_DIR: "Catalog.API"
         IMAGE_NAME: catalogapi
-      - SERVICE: "Basket.API"
+      - PATH_DIR: "Basket.API"
         IMAGE_NAME: basketapi
-      - SERVICE: "Discount.Grpc"
+      - PATH_DIR: "Discount.Grpc"
         IMAGE_NAME: discountgrpc
-      - SERVICE: "Ordering/Ordering.API"
+      - PATH_DIR: "Ordering/Ordering.API"
         IMAGE_NAME: orderingapi
   image: docker:latest
   services:
     - docker:dind
   variables:
     DOCKER_TLS_CERTDIR: ""
+    DOCKER_BUILDKIT: "1"
+    DOCKER_CLI_EXPERIMENTAL: "enabled"
     FULL_IMAGE_PATH: "$CI_REGISTRY_IMAGE/$IMAGE_NAME"
+    CACHE_IMAGE: "$FULL_IMAGE_PATH:buildcache"
+    GIT_STRATEGY: fetch
   rules:
     - if: '$CI_COMMIT_BRANCH == "main"'
       changes:
-        - Services/${SERVICE}/**/*
+        - Services/${PATH_DIR}/**/*
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
       changes:
-        - Services/${SERVICE}/**/*
+        - Services/${PATH_DIR}/**/*
     - when: never
+  before_script:
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin $CI_REGISTRY
+    - docker buildx create --use --name ci-builder || docker buildx use ci-builder
+    - docker buildx inspect --bootstrap
+    - git fetch --all
+    - git checkout $CI_COMMIT_SHA
   script:
-    - docker build \
-        -t $IMAGE_NAME:candidate \
-        -f Services/${SERVICE}/Dockerfile \
-        Services/${SERVICE}
+    - |
+      docker buildx build \
+        --progress=plain \
+        --platform linux/amd64 \
+        --tag $FULL_IMAGE_PATH:$CI_COMMIT_SHA \
+        -f Services/${PATH_DIR}/Dockerfile \
+        --cache-from type=registry,ref=$CACHE_IMAGE \
+        --load \
+        .
+        
+    - |
+      docker run --rm \
+      -v /var/run/docker.sock:/var/run/docker.sock \
+      -v "$PWD":/work -w /work \
+      -v "$HOME/.cache/trivy":/root/.cache/trivy \
+      aquasec/trivy:0.68.1 image \
+      --scanners vuln \
+      --severity HIGH,CRITICAL \
+      --format table \
+      $FULL_IMAGE_PATH:$CI_COMMIT_SHA
 
-    - docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
-        aquasec/trivy:0.68.1 image \
-        --exit-code 0 \
-        --severity HIGH,CRITICAL \
-        --format gl-container-scanning-report \
-        --output gl-trivy-container-scanning-report-$IMAGE_NAME.json \
-        $IMAGE_NAME:candidate
+    - |
+      docker run --rm \
+      -v /var/run/docker.sock:/var/run/docker.sock \
+      -v "$PWD":/work -w /work \
+      -v "$HOME/.cache/trivy":/root/.cache/trivy \
+      aquasec/trivy:0.68.1 image \
+      --scanners vuln \
+      --severity HIGH,CRITICAL \
+      --format json \
+      --output gl-trivy-container-scanning-report-$IMAGE_NAME.json \
+      $FULL_IMAGE_PATH:$CI_COMMIT_SHA
 
-    - docker tag $IMAGE_NAME:candidate $FULL_IMAGE_PATH:$CI_COMMIT_SHA
-    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $DOCKER_REGISTRY
     - docker push $FULL_IMAGE_PATH:$CI_COMMIT_SHA
+    - docker tag $FULL_IMAGE_PATH:$CI_COMMIT_SHA $FULL_IMAGE_PATH:candidate
+    - docker push $FULL_IMAGE_PATH:candidate
   artifacts:
     reports:
       container_scanning: gl-trivy-container-scanning-report-$IMAGE_NAME.json
     expire_in: 1 week
-

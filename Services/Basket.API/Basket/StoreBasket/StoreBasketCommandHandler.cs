@@ -25,7 +25,7 @@ public class StoreBasketCommandValidator : AbstractValidator<StoreBasketCommand>
 }
 
 public class StoreBasketCommandHandler(
-    ProductProtoService.ProductProtoServiceClient client, 
+    ProductProtoService.ProductProtoServiceClient client,
     HybridCache cache,
     IBasketRepository repository,
     IUserContextService userContext)
@@ -35,28 +35,29 @@ public class StoreBasketCommandHandler(
     {
         var basket = await repository.GetBasket(userContext.GetUserId(), cancellationToken);
         if (basket is null && command?.Product is null) return new StoreBasketResult(false);
-        
-        basket ??= new ShoppingCart 
+
+        basket ??= new ShoppingCart
         {
             UserId = userContext.GetUserId(),
             Items = []
         };
-        
-        if(command?.Product != null)
+
+        if (command?.Product != null)
         {
-            var cachedProduct = await cache.GetOrCreateAsync($"products-{command.Product.ProductId}", async _ => 
-                await client.GetProductAsync(new GetProductRequest {
+            var cachedProduct = await cache.GetOrCreateAsync($"products-{command.Product.ProductId}", async _ =>
+                await client.GetProductAsync(new GetProductRequest
+                {
                     ProductId = command.Product.ProductId.ToString()
                 }, cancellationToken: cancellationToken),
-            tags: ["products"], 
+            tags: ["products"],
             cancellationToken: cancellationToken);
-            
-            if(cachedProduct.Product == null || cachedProduct.Product.Quantity < command.Product.Quantity) return new StoreBasketResult(false);
+
+            if (cachedProduct.Product == null || cachedProduct.Product.Quantity < command.Product.Quantity) return new StoreBasketResult(false);
 
             var existingItem = basket.Items.FirstOrDefault(x => x.ProductId == command.Product.ProductId);
             if (existingItem == null)
             {
-                basket.Items.Add(new ShoppingCartItem 
+                basket.Items.Add(new ShoppingCartItem
                 {
                     ProductId = command.Product.ProductId,
                     Title = cachedProduct.Product.Title,
@@ -71,10 +72,10 @@ public class StoreBasketCommandHandler(
 
         if (!string.IsNullOrWhiteSpace(command?.Coupon))
             basket.CouponCode = command?.Coupon;
-        
+
         if (command?.Coupon == string.Empty)
             basket.CouponCode = null;
-            
+
         await repository.StoreBasket(basket, cancellationToken);
         return new StoreBasketResult(true);
     }

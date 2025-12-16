@@ -4,7 +4,7 @@ using BuildingBlocks.Messaging.Product;
 
 namespace Catalog.API.Services;
 
-public class ProductService(IDocumentSession session, ILogger<ProductService> logger) 
+public class ProductService(IDocumentSession session, ILogger<ProductService> logger)
     : ProductProtoService.ProductProtoServiceBase
 {
     public override async Task<GetProductResponse?> GetProduct(GetProductRequest request, ServerCallContext context)
@@ -37,10 +37,10 @@ public class ProductService(IDocumentSession session, ILogger<ProductService> lo
     {
         var ids = request.Ids.Select(Guid.Parse).ToList();
         var products = await session.LoadManyAsync<Product>(ids);
-        
+
         var response = new GetProductsByIdsResponse();
         response.Products.AddRange(products.Adapt<List<ProductModel>>());
-        
+
         return response;
     }
 }

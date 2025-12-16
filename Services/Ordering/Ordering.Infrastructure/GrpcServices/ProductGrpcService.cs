@@ -9,7 +9,7 @@ public class ProductGrpcService(ProductProtoService.ProductProtoServiceClient pr
     {
         var ids = productsIds.Select(id => id.ToString()).ToList();
         var response = await productProto.GetProductsByIdsAsync(new GetProductsByIdsRequest { Ids = { ids } });
-        return [..response.Products.Select(p => 
+        return [..response.Products.Select(p =>
             Product.Create(ProductId.Of(Guid.Parse(p.ProductId)), p.Title, decimal.Parse(p.Price)))];
     }
 }
