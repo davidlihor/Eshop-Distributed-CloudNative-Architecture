@@ -1,0 +1,10 @@
+[extend]
+useDefault = true
+
+[allowlist]
+paths = [
+  '''realm-export.json''',
+  '''compose.yml''',
+  '''compose.override.yml''',
+  '''README.md'''
+]

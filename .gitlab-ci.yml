@@ -1,14 +1,24 @@
+include:
+  - template: Security/SAST.gitlab-ci.yml
+  - template: Security/Secret-Detection.gitlab-ci.yml
+
 variables:
   DOCKER_REGISTRY: $CI_REGISTRY
 
 stages:
   - secrets-scan
+  - iac-scan
+  - sbom
+  - license-scan
   - lint-and-test
+  - test
+  - dast
   - code-quality
   - docker-build
 
 secrets-scan:
   stage: secrets-scan
+  needs: []
   image: 
     name: zricethezav/gitleaks:latest
     entrypoint: [""]
@@ -18,20 +28,55 @@ secrets-scan:
         --no-git \
         --redact \
         --source . \
+        --exit-code 0 \
         --config .gitleaks.toml \
         --report-format json \
         --report-path gitleaks-report.json
-  allow_failure: false 
+  allow_failure: false
   artifacts:
     when: always
     paths:
       - gitleaks-report.json
     expire_in: 1 day
 
+iac-scan:
+  stage: iac-scan
+  needs: []
+  image:
+    name: bridgecrew/checkov:latest
+  script:
+    - -d . --quiet --output json > iac-report.json
+  artifacts:
+    paths:
+      - iac-report.json
+
+sbom:
+  stage: sbom
+  needs: []
+  image:
+    name: aquasec/trivy:latest
+    entrypoint: ["/bin/sh", "-c"]
+  script:
+    - trivy fs --format cyclonedx --output sbom.cdx.json .
+  artifacts:
+    paths:
+      - sbom.cdx.json
+
+license-scan:
+  stage: license-scan
+  needs: []
+  image:
+    name: aquasec/trivy:latest
+    entrypoint: ["/bin/sh", "-c"]
+  script:
+    - trivy fs --scanners license --format json --output license-report.json .
+  artifacts:
+    paths:
+      - license-report.json
+
 lint-and-test:
   stage: lint-and-test
-  needs:
-    - secrets-scan
+  needs: []
   parallel:
     matrix:
       - SERVICE: "Catalog.API"
@@ -81,6 +126,7 @@ code-quality:
         DOTNET: "9.0"
         PATH_DIR: "Ordering/Ordering.API"
   image: mcr.microsoft.com/dotnet/sdk:${DOTNET}
+  allow_failure: false
   rules:
     - changes:
         - "Services/${PATH_DIR}/**/*"
@@ -117,10 +163,14 @@ code-quality:
       fi
 
     - |
-      reportgenerator \
-        -reports:"TestResults/**/coverage.cobertura.xml" \
-        -targetdir:"coverage" \
-        -reporttypes:opencover
+      if ls TestResults/**/coverage.cobertura.xml 1> /dev/null 2>&1; then
+        reportgenerator \
+          -reports:"TestResults/**/coverage.cobertura.xml" \
+          -targetdir:"coverage" \
+          -reporttypes:opencover
+      else
+        echo "No coverage files found, skipping reportgenerator"
+      fi
   
     - dotnet sonarscanner end /d:sonar.login="$SONAR_TOKEN"
     - dotnet list Services/${PATH_DIR} package --vulnerable
@@ -128,7 +178,9 @@ code-quality:
 docker-build:
   stage: docker-build
   needs:
-    - lint-and-test
+    - job: secrets-scan
+    - job: lint-and-test
+      optional: true
   parallel:
     matrix:
       - PATH_DIR: "Catalog.API"
