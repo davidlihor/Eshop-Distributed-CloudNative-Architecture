@@ -1,0 +1,34 @@
+.dotnet_services_matrix:
+  parallel:
+    matrix:
+      - SERVICE: "Catalog.API"
+        PATH_DIR: "Catalog.API"
+        DOTNET: "9.0"
+      - SERVICE: "Basket.API"
+        PATH_DIR: "Basket.API"
+        DOTNET: "9.0"
+      - SERVICE: "Discount.Grpc"
+        PATH_DIR: "Discount.Grpc"
+        DOTNET: "9.0"
+      - SERVICE: "Ordering.API"
+        PATH_DIR: "Ordering/Ordering.API"
+        DOTNET: "9.0"
+      - SERVICE: "YarpApiGateway"
+        PATH_DIR: "YarpApiGateway"
+        DOTNET: "9.0"
+
+.docker_services_matrix:
+  parallel:
+    matrix:
+      - PATH_DIR: "Services/Catalog.API"
+        IMAGE_NAME: catalogapi
+      - PATH_DIR: "Services/Basket.API"
+        IMAGE_NAME: basketapi
+      - PATH_DIR: "Services/Discount.Grpc"
+        IMAGE_NAME: discountgrpc
+      - PATH_DIR: "Services/Ordering/Ordering.API"
+        IMAGE_NAME: orderingapi
+      - PATH_DIR: "YarpApiGateway"
+        IMAGE_NAME: yarpapigateway
+      - PATH_DIR: "client"
+        IMAGE_NAME: shoppingweb

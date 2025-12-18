@@ -1,0 +1,111 @@
+secrets-scan:
+  extends: .security_base
+  stage: secrets-scan
+  image: 
+    name: zricethezav/gitleaks:latest
+    entrypoint: [""]
+  script:
+    - |
+      gitleaks detect \
+        --source . \
+        --report-format json \
+        --report-path gitleaks-report.json \
+        --exit-code 0 \
+        --redact 100 \
+        --no-git \
+        --config .gitleaks.toml
+
+    - |
+      if grep -q '"RuleID"' gitleaks-report.json; then
+        echo "Gitleaks found potential leaks:"
+        jq '.[] | {RuleID, File, StartLine}' gitleaks-report.json
+        exit 1
+      else
+        echo "No leaks found"
+      fi
+  artifacts:
+    paths:
+      - gitleaks-report.json
+
+semgrep-security-gate:
+  extends: .security_base
+  image: returntocorp/semgrep
+  script:
+    - semgrep scan --config auto --json --output semgrep-report.json .
+    - |
+      if jq -e '.results | map(select(.extra.severity=="ERROR")) | length > 0' semgrep-report.json > /dev/null; then
+        echo "Semgrep found CRITICAL/HIGH issues"
+        jq '.results[] | select(.extra.severity=="ERROR") | {check_id, path, start, message}' semgrep-report.json
+        exit 1
+      else
+        echo "No CRITICAL/HIGH issues found"
+      fi
+  artifacts:
+    paths:
+      - semgrep-report.json
+
+iac-scan:
+  extends: .security_base
+  image:
+    name: bridgecrew/checkov:latest
+    entrypoint: [""]
+  script:
+    - |
+      checkov \
+        -d helm/istio \
+        -d helm/ratelimit \
+        --skip-path helm/eshop \
+        --quiet \
+        --output json \
+        --output-file-path iac-report.json \
+        > /dev/null 2>&1 || true
+
+      CRIT=$(jq '[.[].results.failed_checks[]? | select(.severity=="CRITICAL")] | length' iac-report.json 2>/dev/null || echo "0")
+
+      if [ "$CRIT" -gt 0 ]; then
+        echo "Checkov found CRITICAL IaC issues"
+        jq '.[].results.failed_checks[] | select(.severity=="CRITICAL") | {check_id, file_path, severity, check_name}' iac-report.json
+        exit 1
+      else
+        echo "No CRITICAL IaC issues found"
+      fi
+  artifacts:
+    paths:
+      - iac-report.json
+
+sbom:
+  extends: .security_base
+  image:
+    name: aquasec/trivy:latest
+    entrypoint: ["/bin/sh", "-c"]
+  script:
+    - trivy fs --format cyclonedx --output sbom.cdx.json .
+  artifacts:
+    paths:
+      - sbom.cdx.json
+
+license-scan:
+  extends: .security_base
+  needs:
+    - prepare-node
+    - prepare-dotnet
+  image:
+    name: aquasec/trivy:latest
+    entrypoint: ["/bin/sh", "-c"]
+  script:
+    - trivy fs --scanners license --format json --output license-report.json .
+    - |
+      jq '
+        .Results[].Packages[]? 
+        | {name: .Name, version: .Version, licenses: (.Licenses // [])}
+        | select(.licenses[]? | . == "GPL-3.0" or . == "AGPL-3.0" or . == "SSPL")
+      ' license-report.json > banned.json
+
+      if [ -s banned.json ]; then
+        echo "Banned licenses detected:"
+        cat banned.json
+        exit 1
+      fi
+  artifacts:
+    paths:
+      - license-report.json

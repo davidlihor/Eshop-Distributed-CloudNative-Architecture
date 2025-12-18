@@ -1,0 +1,34 @@
+lint-and-test:
+  stage: tests
+  extends: 
+    - .dotnet_base
+    - .dotnet_services_matrix
+  needs: []
+  rules:
+    - changes:
+        - "${PATH_DIR}/**/*"
+        - "${PATH_DIR}/Tests/**/*"
+  script:
+    - dotnet format ${PATH_DIR} --verify-no-changes
+    - |
+      if [ -d "${PATH_DIR}/Tests" ]; then
+        for testproj in $(find ${PATH_DIR}/Tests -name "*.csproj"); do
+          echo "Running tests for $testproj"
+          dotnet test "$testproj" --filter Category=Unit
+          dotnet test "$testproj" --filter Category=Integration
+        done
+      else
+        echo "No tests found for ${PATH_DIR}"
+      fi
+
+client-test:
+  stage: tests
+  extends: .node_base
+  rules:
+    - changes:
+        - "client/**/*"
+  script:
+    - cd client
+    - npm ci --silent
+    - npm run lint || true
+    - npm test -- --watch=false --ci || true

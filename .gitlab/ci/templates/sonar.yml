@@ -1,0 +1,5 @@
+.sonar_base:
+  before_script:
+    - dotnet tool install --global dotnet-sonarscanner
+    - dotnet tool install --global dotnet-reportgenerator-globaltool
+    - export PATH="$PATH:/root/.dotnet/tools"

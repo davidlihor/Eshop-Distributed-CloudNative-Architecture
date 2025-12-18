@@ -1,0 +1,35 @@
+prepare-node:
+  stage: security-static
+  image: node:20-alpine
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      when: on_success
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      when: on_success
+    - when: never
+  script:
+    - cd client && npm ci --silent
+  artifacts:
+    paths:
+      - client/node_modules
+
+prepare-dotnet:
+  stage: security-static
+  image: mcr.microsoft.com/dotnet/sdk:9.0
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      when: on_success
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      when: on_success
+    - when: never
+  script:
+    - dotnet restore Services/Catalog.API --verbosity quiet
+    - dotnet restore Services/Basket.API --verbosity quiet
+    - dotnet restore Services/Discount.Grpc --verbosity quiet
+    - dotnet restore Services/Ordering/Ordering.API --verbosity quiet
+    - dotnet restore YarpApiGateway --verbosity quiet
+  artifacts:
+    paths:
+      - Services/**/obj
+      - Services/**/project.assets.json
+      - Services/**/packages.lock.json

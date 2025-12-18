@@ -1,0 +1,66 @@
+code-quality:
+  stage: quality
+  extends: 
+    - .dotnet_base
+    - .sonar_base
+    - .dotnet_services_matrix
+  needs: []
+  allow_failure: false
+  rules:
+    - changes:
+        - "${PATH_DIR}/**/*"
+        - "${PATH_DIR}/Tests/**/*"
+  script:
+    - |
+      dotnet sonarscanner begin \
+        /k:"${SERVICE}" \
+        /o:"${SONAR_ORGANIZATION}" \
+        /d:sonar.host.url="${SONAR_URL}" \
+        /d:sonar.login="${SONAR_TOKEN}" \
+        /d:sonar.sources="${PATH_DIR}" \
+        /d:sonar.exclusions="**/bin/**,**/obj/**" \
+        /d:sonar.cs.opencover.reportsPaths="coverage/coverage.opencover.xml" \
+        /d:sonar.cs.vstest.reportsPaths="TestResults/*.trx"
+    
+    - dotnet build ${PATH_DIR} -c Release
+    - |
+      if [ -d "${PATH_DIR}/Tests" ]; then
+        for testproj in $(find ${PATH_DIR}/Tests -name "*.csproj"); do
+          echo "Running tests for $testproj"
+          dotnet test "$testproj" \
+            --collect:"XPlat Code Coverage" \
+            --results-directory "TestResults"
+        done
+      else
+        echo "No tests found for ${SERVICE}"
+      fi
+
+    - |
+      if ls TestResults/**/coverage.cobertura.xml 1> /dev/null 2>&1; then
+        reportgenerator \
+          -reports:"TestResults/**/coverage.cobertura.xml" \
+          -targetdir:"coverage" \
+          -reporttypes:opencover
+      else
+        echo "No coverage files found, skipping reportgenerator"
+      fi
+  
+    - dotnet sonarscanner end /d:sonar.login="$SONAR_TOKEN"
+    - dotnet list ${PATH_DIR} package --vulnerable
+
+client-quality:
+  stage: quality
+  needs: []
+  image: sonarsource/sonar-scanner-cli:latest
+  rules:
+    - changes:
+        - "client/**/*"
+  script:
+    - cd client
+    - | 
+      sonar-scanner \
+        -Dsonar.projectKey=ShoppingWeb \
+        -Dsonar.organization=$SONAR_ORGANIZATION \
+        -Dsonar.sources=src \
+        -Dsonar.host.url=$SONAR_URL \
+        -Dsonar.login=$SONAR_TOKEN

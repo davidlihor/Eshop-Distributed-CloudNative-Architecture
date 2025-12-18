@@ -1,0 +1,2 @@
+variables:
+  DOCKER_REGISTRY: $CI_REGISTRY

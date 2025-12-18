@@ -1,0 +1,6 @@
+.node_base:
+  image: node:20-alpine
+  cache:
+    key: "client-node-modules-${CI_COMMIT_REF_SLUG}"
+    paths:
+      - client/node_modules

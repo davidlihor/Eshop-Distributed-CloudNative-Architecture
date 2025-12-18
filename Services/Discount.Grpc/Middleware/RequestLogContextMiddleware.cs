@@ -9,6 +9,6 @@ public class RequestLogContextMiddleware(RequestDelegate next)
         using (LogContext.PushProperty("CorrelationId", context.TraceIdentifier))
         {
             return next(context);
-        };
+        }
     }
 }

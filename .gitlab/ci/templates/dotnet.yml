@@ -1,0 +1,8 @@
+.dotnet_base:
+  image: mcr.microsoft.com/dotnet/sdk:${DOTNET}
+  cache:
+    key: "dotnet-${CI_COMMIT_REF_SLUG}"
+    paths:
+      - .nuget/packages/
+  before_script:
+    - dotnet restore ${PATH_DIR}
