@@ -44,7 +44,7 @@
         "protocol": "openid-connect",
         "publicClient": false,
         "clientAuthenticatorType": "client-secret",
-        "secret": "DaUNH3CoWzXmuZkPMAZ4IOpiUGZ84TW0",
+        "secret": "CHANGE_ME",
         "standardFlowEnabled": false,
         "implicitFlowEnabled": false,
         "directAccessGrantsEnabled": false,

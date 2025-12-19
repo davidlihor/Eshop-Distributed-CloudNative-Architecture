@@ -3,8 +3,12 @@ useDefault = true
 
 [allowlist]
 paths = [
-  '''realm-export.json''',
-  '''compose.yml''',
-  '''compose.override.yml''',
+  '''bin''',
+  '''obj''',
+  '''node_modules''',
+  '''dist''',
   '''README.md'''
+]
+regexes = [
+  '''CHANGE_ME'''
 ]

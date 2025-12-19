@@ -61,11 +61,6 @@ docker-build:
       $FULL_IMAGE_PATH:$CI_COMMIT_SHA
 
     - |
-      # Policy:
-      # - FAIL if there are CRITICAL issues
-      # - FAIL if HIGH > 5
-      # - Rationale: the image must be deployable without major risk
-
       CRIT=$(jq '
         .Results[].Vulnerabilities? // []
         | map(select(.Severity=="CRITICAL"))

@@ -1,6 +1,7 @@
 prepare-node:
   stage: security-static
   image: node:20-alpine
+  needs: []
   rules:
     - if: '$CI_COMMIT_BRANCH == "main"'
       when: on_success
@@ -16,6 +17,7 @@ prepare-node:
 prepare-dotnet:
   stage: security-static
   image: mcr.microsoft.com/dotnet/sdk:9.0
+  needs: []
   rules:
     - if: '$CI_COMMIT_BRANCH == "main"'
       when: on_success

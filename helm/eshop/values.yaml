@@ -447,7 +447,7 @@ apps:
       ConnectionStrings__Database: Server=orderdb-svc,1433; Database=OrderDb; User Id=sa; Password=Password@123; Encrypt=False; Trust Server Certificate=True
       MessageBroker__Password: guest
       Keycloak__ClientId: ordering-service
-      Keycloak__ClientSecret: DaUNH3CoWzXmuZkPMAZ4IOpiUGZ84TW0
+      Keycloak__ClientSecret: CHANGE_ME
       Authentication__ClientId: reactApp
       Authentication__Audience: reactApp
     readinessProbe:

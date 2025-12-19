@@ -1,5 +1,5 @@
 lint-and-test:
-  stage: tests
+  stage: test
   extends: 
     - .dotnet_base
     - .dotnet_services_matrix
@@ -22,8 +22,9 @@ lint-and-test:
       fi
 
 client-test:
-  stage: tests
+  stage: test
   extends: .node_base
+  needs: []
   rules:
     - changes:
         - "client/**/*"

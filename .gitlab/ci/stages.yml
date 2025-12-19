@@ -1,6 +1,6 @@
 stages:
   - secrets-scan
   - security-static
-  - tests
+  - test
   - quality
   - build

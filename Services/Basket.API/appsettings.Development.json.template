@@ -6,13 +6,13 @@
     }
   },
   "ConnectionStrings": {
-    "Database": "Server=localhost; Port=5401; Database=BasketDb; User Id=postgres; Password=postgres; Include Error Detail=true; Trust Server Certificate=True",
+    "Database": "Server=localhost;Port=5401;Database=BasketDb;User Id=postgres;Password=${DB_PASSWORD};Trust Server Certificate=True",
     "Redis": "localhost:6379"
   },
   "MessageBroker": {
     "Host": "amqp://localhost:5672",
-    "UserName": "guest",
-    "Password": "guest"
+    "UserName": "${RABBITMQ_USER}",
+    "Password": "${RABBITMQ_PASS}"
   },
   "Authentication": {
     "Authority": "http://localhost:8080/realms/eshop",
