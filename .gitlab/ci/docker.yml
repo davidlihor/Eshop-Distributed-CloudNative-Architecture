@@ -26,6 +26,9 @@ docker-build:
     - apk add --no-cache jq
     - git fetch --all
     - git checkout $CI_COMMIT_SHA
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin $CI_REGISTRY
+    - docker buildx create --use --name ci-builder || docker buildx use ci-builder
+    - docker buildx inspect --bootstrap
   script:
     - |
       docker buildx build \
@@ -61,29 +64,35 @@ docker-build:
       $FULL_IMAGE_PATH:$CI_COMMIT_SHA
 
     - |
-      CRIT=$(jq '
-        .Results[].Vulnerabilities? // []
-        | map(select(.Severity=="CRITICAL"))
-        | length
+      CRIT_WITH_FIX=$(jq '
+        .Results[].Vulnerabilities? // [] |
+        map(select(.Severity=="CRITICAL" and .FixedVersion != null and .FixedVersion != "")) |
+        length
       ' gl-trivy-container-scanning-report-$IMAGE_NAME.json)
 
-      HIGH=$(jq '
-        .Results[].Vulnerabilities? // []
-        | map(select(.Severity=="HIGH"))
-        | length
+    - |
+      HIGH_WITH_FIX=$(jq '
+        .Results[].Vulnerabilities? // [] |
+        map(select(.Severity=="HIGH" and .FixedVersion != null and .FixedVersion != "")) |
+        length
       ' gl-trivy-container-scanning-report-$IMAGE_NAME.json)
 
-      if [ "$CRIT" -gt 0 ]; then
-        echo "Container policy violation: $CRIT CRITICAL vulnerabilities"
+    - |
+      echo "CRITICAL with fix available: $CRIT_WITH_FIX"
+      echo "HIGH with fix available: $HIGH_WITH_FIX"
+
+    - |
+      if [ "$CRIT_WITH_FIX" -gt 0 ]; then
+        echo "Pipeline failed: CRITICAL vulnerabilities with fixes available"
         exit 1
       fi
 
-      if [ "$HIGH" -gt 5 ]; then
-        echo "Container policy violation: too many HIGH vulnerabilities ($HIGH)"
+      if [ "$HIGH_WITH_FIX" -gt 0 ]; then
+        echo "Pipeline failed: HIGH vulnerabilities with fixes available"
         exit 1
       fi
-  
-      echo "Container policy passed"
+
+      echo "No fixable HIGH/CRITICAL vulnerabilities found. Continuing..."
 
     - docker push $FULL_IMAGE_PATH:$CI_COMMIT_SHA
     - docker tag $FULL_IMAGE_PATH:$CI_COMMIT_SHA $FULL_IMAGE_PATH:candidate

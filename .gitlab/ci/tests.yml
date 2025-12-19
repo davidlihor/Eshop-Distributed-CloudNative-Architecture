@@ -32,4 +32,4 @@ client-test:
     - cd client
     - npm ci --silent
     - npm run lint || true
-    - npm test -- --watch=false --ci || true
+    - npm run test || true
