@@ -1,14 +1,42 @@
 {{- range .Values.apps }}
 {{- $appName := .name }}
 ---
+{{- if hasKey . "rollout" }}
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+{{- else }}
 apiVersion: apps/v1
 kind: Deployment
+{{- end }}
 metadata:
   name: {{ .name }}
   namespace: {{ $.Values.global.namespace }}
   labels:
-    {{- toYaml .labels | nindent 4 }} 
+    {{- toYaml .labels | nindent 4 }}
 spec:
+  {{- if hasKey . "rollout" }}
+  strategy:
+    canary:
+      trafficRouting:
+        istio:
+          virtualService:
+            name: {{ .name }}-vs
+            routes:
+              {{- toYaml .rollout | nindent 14 }}
+          destinationRule:
+            name: {{ .name }}-dr
+            stableSubsetName: stable
+            canarySubsetName: canary
+      steps:
+        - setWeight: 5
+        - pause: { duration: 2m }
+        - setWeight: 20
+        - pause: { duration: 2m }
+        - setWeight: 40
+        - pause: { duration: 2m }
+        - setWeight: 60
+        - pause: { duration: 2m }
+  {{- end }}
   revisionHistoryLimit: {{ coalesce .revisionHistoryLimit $.Values.global.revisionHistoryLimit 5 }}
   replicas: {{ .replicaCount }}
   selector:

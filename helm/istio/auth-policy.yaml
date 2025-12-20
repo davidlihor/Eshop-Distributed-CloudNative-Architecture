@@ -1,16 +1,11 @@
 apiVersion: security.istio.io/v1
 kind: AuthorizationPolicy
 metadata:
-  name: deny-from-outside-trusted-namespaces
+  name: default-deny
   namespace: eshop
 spec:
-  selector:
-    matchLabels: {}
-  action: DENY
-  rules:
-  - from:
-    - source:
-        notNamespaces: ["eshop","istio-system"]
+  action: ALLOW
+  rules: []
 ---
 apiVersion: security.istio.io/v1
 kind: AuthorizationPolicy

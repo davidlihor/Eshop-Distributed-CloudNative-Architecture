@@ -1,0 +1,47 @@
+{{- range .Values.services }}
+{{- if hasSuffix "-clusterip" .name }}
+{{- $svcName := .name }}
+---
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  name: {{ .selector }}-vs
+  namespace: {{ $.Values.global.namespace }}
+spec:
+  hosts:
+    - {{ $svcName }}.{{ $.Values.global.namespace }}.svc.cluster.local
+  gateways:
+    - mesh
+  http:
+  {{- range .ports }}
+    {{- if eq .name "http" }}
+    - name: http-route
+      match:
+        - port: {{ .port }}
+      route:
+        - destination:
+            host: {{ $svcName }}.{{ $.Values.global.namespace }}.svc.cluster.local
+            subset: stable
+          weight: 100
+        - destination:
+            host: {{ $svcName }}.{{ $.Values.global.namespace }}.svc.cluster.local
+            subset: canary
+          weight: 0
+    {{- else if eq .name "grpc" }}
+    - name: grpc-route
+      match:
+        - port: {{ .port }}
+      route:
+        - destination:
+            host: {{ $svcName }}.{{ $.Values.global.namespace }}.svc.cluster.local
+            subset: stable
+          weight: 100
+        - destination:
+            host: {{ $svcName }}.{{ $.Values.global.namespace }}.svc.cluster.local
+            subset: canary
+          weight: 0
+    {{- end }}
+  {{- end }}
+{{- end }}
+{{- end }}
+
