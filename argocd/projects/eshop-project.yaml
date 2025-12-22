@@ -1,0 +1,35 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: eshop-project
+  namespace: argocd
+spec:
+  description: "Project for distributed microservices"
+  destinations:
+    - server: https://kubernetes.default.svc
+      namespace: eshop-dev
+    - server: https://kubernetes.default.svc
+      namespace: eshop-prod
+    - name: infra
+      server: https://kubernetes.default.svc
+      namespace: istio-system
+    - name: ratelimit-system
+      server: https://kubernetes.default.svc
+      namespace: istio-ratelimit
+    - name: control-plane
+      server: https://kubernetes.default.svc
+      namespace: argocd
+    - name: rollouts-deployment
+      server: https://kubernetes.default.svc
+      namespace: argo-rollouts
+    - name: secrets
+      server: https://kubernetes.default.svc
+      namespace: external-secrets
+  sourceRepos:
+    - '*'
+  clusterResourceWhitelist:
+    - group: ''
+      kind: Namespace
+  namespaceResourceWhitelist:
+    - group: '*'
+      kind: '*'

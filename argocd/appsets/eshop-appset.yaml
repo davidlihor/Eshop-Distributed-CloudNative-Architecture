@@ -1,0 +1,45 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: eshop-environments
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "5"
+spec:
+  generators:
+    - list:
+        elements:
+          - env: dev
+            namespace: eshop
+            vFile: values.yaml
+          - env: stage
+            namespace: eshop-stage
+            vFile: values-stage.yaml
+          - env: prod
+            namespace: eshop-prod
+            vFile: values-prod.yaml
+  template:
+    metadata:
+      name: eshop-{{env}}
+    spec:
+      project: default
+      source:
+        repoURL: https://github.com/davidlihor/Eshop-Distributed-CloudNative-Architecture.git
+        targetRevision: HEAD
+        path: helm/eshop
+        helm:
+          valueFiles:
+            - "{{vFile}}"
+          parameters:
+            - name: "global.namespace"
+              value: "{{namespace}}"
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: "{{namespace}}"
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true
+          - ServerSideApply=true

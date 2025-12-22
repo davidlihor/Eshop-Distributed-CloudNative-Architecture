@@ -1,0 +1,23 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: ratelimit-service
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "4"
+spec:
+  project: eshop-project
+  source:
+    repoURL: https://github.com/davidlihor/Eshop-Distributed-CloudNative-Architecture.git
+    targetRevision: HEAD
+    path: helm/ratelimit
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: istio-ratelimit
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
