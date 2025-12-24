@@ -1,5 +1,5 @@
 {{- range .Values.services }}
-{{- if hasSuffix "-clusterip" .name }}
+{{- if or (eq .strategyType "canary") (eq .strategyType "blueGreen") }}
 ---
 apiVersion: networking.istio.io/v1
 kind: DestinationRule
@@ -8,6 +8,7 @@ metadata:
   namespace: {{ $.Values.global.namespace }}
 spec:
   host: {{ .name }}.{{ $.Values.global.namespace }}.svc.cluster.local
+  {{- if eq .strategyType "canary" }}
   subsets:
     - name: stable
       labels:
@@ -15,6 +16,7 @@ spec:
     - name: canary
       labels:
         app: {{ .selector }}
+  {{- end }}
   trafficPolicy:
     tls:
       mode: ISTIO_MUTUAL
@@ -23,7 +25,7 @@ spec:
         maxConnections: 100
       http:
         http2MaxRequests: 1000
-        maxRequestsPerConnection: 100
+        maxRequestsPerConnection: 10
     outlierDetection:
       consecutive5xxErrors: 5
       interval: 5s

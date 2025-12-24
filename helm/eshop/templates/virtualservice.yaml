@@ -1,5 +1,5 @@
 {{- range .Values.services }}
-{{- if hasSuffix "-clusterip" .name }}
+{{- if eq .strategyType "canary" }}
 {{- $svcName := .name }}
 ---
 apiVersion: networking.istio.io/v1

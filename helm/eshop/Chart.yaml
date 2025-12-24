@@ -1,6 +1,6 @@
 apiVersion: v2
-name: helm
-description: A Helm chart for Kubernetes
+name: eshop
+description: A Helm chart for eSHOP deployment
 type: application
 version: 0.1.0
 appVersion: "1.16.0"

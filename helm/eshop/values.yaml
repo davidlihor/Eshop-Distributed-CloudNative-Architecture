@@ -1,6 +1,7 @@
 global:
   istioInjection: true
   namespace: eshop
+  ns: true
   imagePullPolicy: IfNotPresent
   revisionHistoryLimit: 5
   terminationGracePeriodSeconds: 20
@@ -17,6 +18,15 @@ prometheus:
     matchNames:
       - default
       - eshop
+security:
+  istio:
+    enabled: true
+    mtlsMode: STRICT
+    tlsSecret: eshop-tls
+    hosts:
+      hostApp: app.eshop.local
+      hostApi: api.eshop.local
+      hostId: id.eshop.local
 
 services:
   - name: catalogdb-svc
@@ -83,6 +93,7 @@ services:
       port: 8080
 
   - name: catalog-clusterip
+    strategyType: canary
     selector: catalog-api
     type: ClusterIP
     ports:
@@ -92,6 +103,7 @@ services:
       port: 8080
 
   - name: basket-clusterip
+    strategyType: blueGreen
     selector: basket-api
     type: ClusterIP
     ports:
@@ -285,7 +297,7 @@ apps:
       KK_TO_RMQ_VHOST: /
       KK_TO_RMQ_EXCHANGE: keycloak.exchange
       KC_PROXY: edge
-      KC_HOSTNAME: https://id.eshop.local
+      KC_HOSTNAME: "https://{{ .Values.security.istio.hosts.hostId }}"
       KC_HOSTNAME_BACKCHANNEL_DYNAMIC: "true"
     secrets:
       KC_BOOTSTRAP_ADMIN_PASSWORD: admin
@@ -309,7 +321,7 @@ apps:
       proj: eshop
     replicaCount: 1
     sa: catalog-sa
-    rollout:
+    canary:
       - http-route
     ports: 
       - port: 80
@@ -319,7 +331,7 @@ apps:
       MessageBroker__Host: amqp://rabbitmq-svc:5672
       MessageBroker__UserName: guest
       Authentication__Authority: http://keycloak-clusterip:8080/realms/eshop
-      Authentication__ValidIssuer: https://id.eshop.local/realms/eshop
+      Authentication__ValidIssuer: "https://{{ .Values.security.istio.hosts.hostId }}/realms/eshop"
       Kestrel__Endpoints__WebApi__Url: http://+:80
       Kestrel__Endpoints__WebApi__Protocols: Http1
       Kestrel__Endpoints__Grpc__Url: http://+:8080
@@ -341,8 +353,8 @@ apps:
       proj: eshop
     replicaCount: 1
     sa: basket-sa
-    rollout:
-      - http-route
+    blueGreen: true
+    svc: basket-clusterip
     ports:
       - port: 8080
     config:
@@ -353,7 +365,7 @@ apps:
       GrpcSettings__CatalogUrl: http://catalog-clusterip:8080
       GrpcSettings__DiscountUrl: http://discount-clusterip:8080
       Authentication__Authority: http://keycloak-clusterip:8080/realms/eshop
-      Authentication__ValidIssuer: https://id.eshop.local/realms/eshop
+      Authentication__ValidIssuer: "https://{{ .Values.security.istio.hosts.hostId }}/realms/eshop"
     secrets:
       ConnectionStrings__Database: Server=basketdb-svc; Port=5432; Database=BasketDb; User Id=postgres; Password=postgres; Include Error Detail=true
       MessageBroker__Password: guest
@@ -373,8 +385,6 @@ apps:
       proj: eshop
     replicaCount: 1
     sa: discount-sa
-    rollout:
-      - http-route
     ports:
       - port: 80
       - port: 8080
@@ -385,7 +395,7 @@ apps:
       OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
       Seq__ServerUrl: http://seq-svc:5341
       Authentication__Authority: http://keycloak-clusterip:8080/realms/eshop
-      Authentication__ValidIssuer: https://id.eshop.local/realms/eshop
+      Authentication__ValidIssuer: "https://{{ .Values.security.istio.hosts.hostId }}/realms/eshop"
       Kestrel__Endpoints__WebApi__Url: http://+:80
       Kestrel__Endpoints__WebApi__Protocols: Http1
       Kestrel__Endpoints__Grpc__Url: http://+:8080
@@ -405,8 +415,6 @@ apps:
       proj: eshop
     replicaCount: 1
     sa: order-sa
-    rollout:
-      - http-route
     ports:
       - port: 8080
     config:
@@ -420,7 +428,7 @@ apps:
       Keycloak__GrantType: client_credentials      
       FeatureManagement__OrderFullfilment: "false"
       Authentication__Authority: http://keycloak-clusterip:8080/realms/eshop
-      Authentication__ValidIssuer: https://id.eshop.local/realms/eshop
+      Authentication__ValidIssuer: "https://{{ .Values.security.istio.hosts.hostId }}/realms/eshop"
     secrets:
       ConnectionStrings__Database: Server=orderdb-svc,1433; Database=OrderDb; User Id=sa; Password=Password@123; Encrypt=False; Trust Server Certificate=True
       MessageBroker__Password: guest
@@ -442,15 +450,13 @@ apps:
       proj: eshop
     replicaCount: 1
     sa: yarp-sa
-    rollout:
-      - http-route
     ports:
       - port: 8080
     config:
       ASPNETCORE_ENVIRONMENT: Production
-      ALLOWED_ORIGINS: https://app.eshop.local
+      ALLOWED_ORIGINS: "https://{{ .Values.security.istio.hosts.hostApp }}"
       Authentication__Authority: http://keycloak-clusterip:8080/realms/eshop
-      Authentication__ValidIssuer: https://id.eshop.local/realms/eshop
+      Authentication__ValidIssuer: "https://{{ .Values.security.istio.hosts.hostId }}/realms/eshop"
     secrets:
       Authentication__ClientId: reactApp
       Authentication__Audience: reactApp
@@ -468,12 +474,10 @@ apps:
       app: web-client
       proj: eshop
     replicaCount: 1
-    rollout:
-      - http-route
     ports:
       - port: 80
     config:
-      YARP_API_URL: https://api.eshop.local 
-      KEYCLOAK_URL: https://id.eshop.local
+      YARP_API_URL: "https://{{ .Values.security.istio.hosts.hostApi }}"
+      KEYCLOAK_URL: "https://{{ .Values.security.istio.hosts.hostId }}"
       KEYCLOAK_REALM: eshop
       KEYCLOAK_CLIENTID: reactApp

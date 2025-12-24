@@ -12,11 +12,19 @@ spec:
     app: {{ .selector }}
   type: {{ .type }}
   ports:
-    {{- range .ports }}
-    - name: {{ .name }}
-      port: {{ .port }}
-      {{- if .targetPort  }}
-      targetPort: {{ .targetPort }}
-      {{- end }}
-    {{- end }}
+    {{- toYaml .ports | nindent 4 }}
+{{- if eq .strategyType "blueGreen" }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .name }}-preview
+  namespace: {{ $.Values.global.namespace }}
+spec:
+  selector:
+    app: {{ .selector }}
+  type: {{ .type }}
+  ports:
+    {{- toYaml .ports | nindent 4 }}
+{{- end }}
 {{- end }}

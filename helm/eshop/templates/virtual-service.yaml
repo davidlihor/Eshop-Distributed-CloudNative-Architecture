@@ -2,10 +2,10 @@ apiVersion: networking.istio.io/v1
 kind: VirtualService
 metadata:
   name: eshop-app-vs
-  namespace: eshop
+  namespace: {{ $.Values.global.namespace }}
 spec:
   hosts:
-    - app.eshop.local
+    - {{ .Values.security.istio.hosts.hostApp }}
   gateways:
     - eshop-gateway
   http:
@@ -14,7 +14,7 @@ spec:
             prefix: /
       route:
         - destination:
-            host: web-client-clusterip.eshop.svc.cluster.local
+            host: web-client-clusterip.{{ $.Values.global.namespace }}.svc.cluster.local
             port:
               number: 80
       timeout: 5s
@@ -23,10 +23,10 @@ apiVersion: networking.istio.io/v1
 kind: VirtualService
 metadata:
   name: eshop-api-vs
-  namespace: eshop
+  namespace: {{ $.Values.global.namespace }}
 spec:
   hosts:
-    - api.eshop.local
+    - {{ .Values.security.istio.hosts.hostApi }}
   gateways:
     - eshop-gateway
   http:
@@ -35,7 +35,7 @@ spec:
             prefix: /
       route:
         - destination:
-            host: yarp-api-gateway-clusterip.eshop.svc.cluster.local
+            host: yarp-api-gateway-clusterip.{{ $.Values.global.namespace }}.svc.cluster.local
             port:
               number: 80
       timeout: 5s
@@ -44,10 +44,10 @@ apiVersion: networking.istio.io/v1
 kind: VirtualService
 metadata:
   name: eshop-id-vs
-  namespace: eshop
+  namespace: {{ $.Values.global.namespace }}
 spec:
   hosts:
-    - id.eshop.local
+    - {{ .Values.security.istio.hosts.hostId }}
   gateways:
     - eshop-gateway
   http:
@@ -56,7 +56,7 @@ spec:
             prefix: /
       route:
         - destination:
-            host: keycloak-clusterip.eshop.svc.cluster.local
+            host: keycloak-clusterip.{{ $.Values.global.namespace }}.svc.cluster.local
             port:
               number: 8080
       timeout: 5s

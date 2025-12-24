@@ -1,6 +1,8 @@
+{{- if .Values.global.ns }}
 apiVersion: v1
 kind: Namespace
 metadata:
   name: {{ $.Values.global.namespace }}
   labels:
     istio-injection: {{ ternary "enabled" "disabled" $.Values.global.istioInjection }}
+{{- end }}

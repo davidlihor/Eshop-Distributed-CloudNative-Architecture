@@ -1,0 +1,20 @@
+apiVersion: networking.istio.io/v1
+kind: Gateway
+metadata:
+  name: eshop-gateway
+  namespace: {{ $.Values.global.namespace }}
+spec:
+  selector:
+    istio: ingressgateway
+  servers:
+    - port:
+        number: 443
+        name: https
+        protocol: HTTPS
+      tls:
+        mode: SIMPLE
+        credentialName: {{ .Values.security.istio.tlsSecret }}
+      hosts:
+        - {{ .Values.security.istio.hosts.hostApp }}
+        - {{ .Values.security.istio.hosts.hostApi }}
+        - {{ .Values.security.istio.hosts.hostId }}

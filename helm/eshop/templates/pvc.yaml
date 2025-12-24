@@ -1,5 +1,6 @@
 {{- range .Values.apps }}
 {{- range .volumes }}
+{{- if eq .type "pvc" }}
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
@@ -13,5 +14,6 @@ spec:
   volumeMode: Filesystem
   accessModes:
     - ReadWriteOnce
+{{- end }}
 {{- end }}
 {{- end }}

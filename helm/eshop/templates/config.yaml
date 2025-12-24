@@ -8,7 +8,7 @@ metadata:
   namespace: {{ $.Values.global.namespace }}
 data:
   {{- range $key, $value := .config }}
-  {{ $key }}: "{{ $value }}"
+  {{ $key }}: {{ tpl (toString $value) $ | quote }}
   {{- end }}
 {{- end }}
 {{- end }}
@@ -17,7 +17,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: mssql-conf
-  namespace: eshop
+  namespace: {{ $.Values.global.namespace }}
 data:
   mssql.conf: |
     [filelocation]
@@ -46,10 +46,16 @@ data:
             "protocol": "openid-connect",
             "publicClient": true,
             "redirectUris": [
-              "https://app.eshop.local/*"
+              "https://app.eshop.local/*",
+              "https://app.eshop.dev/*",
+              "https://app.eshop.stage/*",
+              "https://app.eshop.prod/*"
             ],
             "webOrigins": [
-              "https://app.eshop.local"
+              "https://app.eshop.local",
+              "https://app.eshop.dev",
+              "https://app.eshop.stage",
+              "https://app.eshop.prod"
             ],
             "attributes": {
               "pkce.code.challenge.method": "S256"

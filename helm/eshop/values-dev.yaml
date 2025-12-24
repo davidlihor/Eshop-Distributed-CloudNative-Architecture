@@ -1,0 +1,17 @@
+global:
+  istioInjection: true
+  namespace: eshop-dev
+  ns: false
+  imagePullPolicy: IfNotPresent
+  revisionHistoryLimit: 5
+  terminationGracePeriodSeconds: 20
+security:
+  istio:
+    enabled: true
+    mtlsMode: STRICT
+    tlsSecret: eshop-tls-dev
+    hosts:
+      hostApp: app.eshop.dev
+      hostApi: api.eshop.dev
+      hostId: id.eshop.dev
+

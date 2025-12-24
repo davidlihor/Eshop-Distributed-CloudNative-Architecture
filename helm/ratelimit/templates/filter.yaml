@@ -51,7 +51,7 @@ spec:
               - endpoint:
                   address:
                     socket_address:
-                      address: ratelimit.istio-system.svc.cluster.local
+                      address: ratelimit.ratelimit-system.svc.cluster.local
                       port_value: 8081
 ---
 apiVersion: networking.istio.io/v1alpha3
