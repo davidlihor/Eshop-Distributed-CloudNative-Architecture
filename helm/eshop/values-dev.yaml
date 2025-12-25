@@ -1,6 +1,7 @@
 global:
   istioInjection: true
   namespace: eshop-dev
+  environment: dev
   ns: false
   imagePullPolicy: IfNotPresent
   revisionHistoryLimit: 5

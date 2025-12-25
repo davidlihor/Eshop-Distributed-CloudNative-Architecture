@@ -83,28 +83,33 @@ spec:
         - name: {{ .name }}
           image: {{ .image.repository }}:{{ .image.tag }}
           imagePullPolicy: {{ coalesce .imagePullPolicy $.Values.global.imagePullPolicy "IfNotPresent" }}
-          {{- if or .config .secrets }}
+          {{- if or .config (and .secrets (not .externalSecrets)) }}
           env:
             {{- if .config }}
             {{- range $key, $_ := .config }}
-            - name: {{ $key | upper }}
+            - name: {{ $key }}
               valueFrom:
                 configMapKeyRef:
                   name: {{ $appName }}-config
                   key: {{ $key }}
             {{- end }}
             {{- end }}
-           
-            {{- if .secrets }}
+
+            {{- if and .secrets (not .externalSecrets) }}
             {{- range $key, $_ := .secrets }}
-            - name: {{ $key | upper }}
+            - name: {{ $key }}
               valueFrom:
                 secretKeyRef:
                   name: {{ $appName }}-secret
                   key: {{ $key }}
             {{- end }}
             {{- end }}
-          
+          {{- end }}
+
+          {{- if .externalSecrets }}
+          envFrom:
+            - secretRef:
+                name: {{ $appName }}-secret
           {{- end }}
 
           {{- if .args }}

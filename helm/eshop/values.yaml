@@ -1,6 +1,7 @@
 global:
   istioInjection: true
   namespace: eshop
+  environment: dev
   ns: true
   imagePullPolicy: IfNotPresent
   revisionHistoryLimit: 5
@@ -155,11 +156,10 @@ apps:
     revisionHistoryLimit: 2
     ports: 
       - port: 5432
-    secrets:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: CatalogDb
-      PGDATA: /postgres-data/pgdata
+    externalSecrets:
+      enabled: true
+      secretStoreName: vault-backend
+      remoteRef: "eshop/{{ .Values.global.environment }}/catalog-db"
     volumes:
       - name: catalog-volume
         mountPath: /postgres-data
@@ -176,11 +176,10 @@ apps:
     revisionHistoryLimit: 2
     ports:
       - port: 5432
-    secrets:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: BasketDb
-      PGDATA: /postgres-data/pgdata
+    externalSecrets:
+      enabled: true
+      secretStoreName: vault-backend
+      remoteRef: "eshop/{{ .Values.global.environment }}/basket-db"
     volumes:
       - name: basket-volume
         mountPath: /postgres-data
@@ -197,9 +196,10 @@ apps:
     revisionHistoryLimit: 2
     ports:
       - port: 1433
-    secrets:
-      ACCEPT_EULA: "Y"
-      SA_PASSWORD: Password@123
+    externalSecrets:
+      enabled: true
+      secretStoreName: vault-backend
+      remoteRef: "eshop/{{ .Values.global.environment }}/order-db"
     volumes:
       - name: mssql-conf
         mountPath: /var/opt/mssql/mssql.conf
@@ -219,11 +219,10 @@ apps:
     replicaCount: 1
     ports:
       - port: 5432
-    secrets:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: Password@123
-      POSTGRES_DB: keycloak
-      PGDATA: /postgres-data/pgdata
+    externalSecrets:
+      enabled: true
+      secretStoreName: vault-backend
+      remoteRef: "eshop/{{ .Values.global.environment }}/keycloak-db"
     volumes:
       - name: keycloak-volume
         mountPath: /postgres-data
@@ -251,9 +250,10 @@ apps:
     ports: 
       - port: 5672
       - port: 15672
-    secrets:
-      RABBITMQ_DEFAULT_USER: guest
-      RABBITMQ_DEFAULT_PASS: guest
+    externalSecrets:
+      enabled: true
+      secretStoreName: vault-backend
+      remoteRef: "eshop/{{ .Values.global.environment }}/rabbit-mq"
 
   - name: discount-seq
     image:
@@ -266,9 +266,10 @@ apps:
     ports:
       - port: 5341
       - port: 80
-    secrets:
-      ACCEPT_EULA: "Y"
-      SEQ_FIRSTRUN_ADMINPASSWORD: admin
+    externalSecrets:
+      enabled: true
+      secretStoreName: vault-backend
+      remoteRef: "eshop/{{ .Values.global.environment }}/discount-seq"
     volumes:
       - name: seq-data
         mountPath: /data
@@ -299,13 +300,10 @@ apps:
       KC_PROXY: edge
       KC_HOSTNAME: "https://{{ .Values.security.istio.hosts.hostId }}"
       KC_HOSTNAME_BACKCHANNEL_DYNAMIC: "true"
-    secrets:
-      KC_BOOTSTRAP_ADMIN_PASSWORD: admin
-      KC_BOOTSTRAP_ADMIN_USERNAME: admin
-      KC_DB_USERNAME: postgres
-      KC_DB_PASSWORD: Password@123
-      KK_TO_RMQ_USERNAME: guest
-      KK_TO_RMQ_PASSWORD: guest
+    externalSecrets:
+      enabled: true
+      secretStoreName: vault-backend
+      remoteRef: "eshop/{{ .Values.global.environment }}/keycloak-svc"
     volumes:
       - name: keycloak-config
         mountPath: /opt/keycloak/data/import/realm-export.json
@@ -321,8 +319,6 @@ apps:
       proj: eshop
     replicaCount: 1
     sa: catalog-sa
-    canary:
-      - http-route
     ports: 
       - port: 80
       - port: 8080
@@ -336,11 +332,10 @@ apps:
       Kestrel__Endpoints__WebApi__Protocols: Http1
       Kestrel__Endpoints__Grpc__Url: http://+:8080
       Kestrel__Endpoints__Grpc__Protocols: Http2
-    secrets:
-      ConnectionStrings__Database: Server=catalogdb-svc; Port=5432; Database=CatalogDb; User Id=postgres; Password=postgres; Include Error Detail=true
-      MessageBroker__Password: guest
-      Authentication__ClientId: reactApp
-      Authentication__Audience: reactApp
+    externalSecrets:
+      enabled: true
+      secretStoreName: vault-backend
+      remoteRef: "eshop/{{ .Values.global.environment }}/catalog-api"
     readinessProbe:
     livenessProbe:
 
@@ -353,7 +348,6 @@ apps:
       proj: eshop
     replicaCount: 1
     sa: basket-sa
-    blueGreen: true
     svc: basket-clusterip
     ports:
       - port: 8080
@@ -366,11 +360,10 @@ apps:
       GrpcSettings__DiscountUrl: http://discount-clusterip:8080
       Authentication__Authority: http://keycloak-clusterip:8080/realms/eshop
       Authentication__ValidIssuer: "https://{{ .Values.security.istio.hosts.hostId }}/realms/eshop"
-    secrets:
-      ConnectionStrings__Database: Server=basketdb-svc; Port=5432; Database=BasketDb; User Id=postgres; Password=postgres; Include Error Detail=true
-      MessageBroker__Password: guest
-      Authentication__ClientId: reactApp
-      Authentication__Audience: reactApp
+    externalSecrets:
+      enabled: true
+      secretStoreName: vault-backend
+      remoteRef: "eshop/{{ .Values.global.environment }}/basket-api"
     readinessProbe:
       port: 8080
     livenessProbe:
@@ -400,9 +393,10 @@ apps:
       Kestrel__Endpoints__WebApi__Protocols: Http1
       Kestrel__Endpoints__Grpc__Url: http://+:8080
       Kestrel__Endpoints__Grpc__Protocols: Http2
-    secrets:
-      Authentication__ClientId: reactApp
-      Authentication__Audience: reactApp
+    externalSecrets:
+      enabled: true
+      secretStoreName: vault-backend
+      remoteRef: "eshop/{{ .Values.global.environment }}/discount-grpc"
     readinessProbe:
     livenessProbe:
 
@@ -429,13 +423,10 @@ apps:
       FeatureManagement__OrderFullfilment: "false"
       Authentication__Authority: http://keycloak-clusterip:8080/realms/eshop
       Authentication__ValidIssuer: "https://{{ .Values.security.istio.hosts.hostId }}/realms/eshop"
-    secrets:
-      ConnectionStrings__Database: Server=orderdb-svc,1433; Database=OrderDb; User Id=sa; Password=Password@123; Encrypt=False; Trust Server Certificate=True
-      MessageBroker__Password: guest
-      Keycloak__ClientId: ordering-service
-      Keycloak__ClientSecret: CHANGE_ME
-      Authentication__ClientId: reactApp
-      Authentication__Audience: reactApp
+    externalSecrets:
+      enabled: true
+      secretStoreName: vault-backend
+      remoteRef: "eshop/{{ .Values.global.environment }}/ordering-api"
     readinessProbe:
       port: 8080
     livenessProbe:
@@ -457,9 +448,10 @@ apps:
       ALLOWED_ORIGINS: "https://{{ .Values.security.istio.hosts.hostApp }}"
       Authentication__Authority: http://keycloak-clusterip:8080/realms/eshop
       Authentication__ValidIssuer: "https://{{ .Values.security.istio.hosts.hostId }}/realms/eshop"
-    secrets:
-      Authentication__ClientId: reactApp
-      Authentication__Audience: reactApp
+    externalSecrets:
+      enabled: true
+      secretStoreName: vault-backend
+      remoteRef: "eshop/{{ .Values.global.environment }}/yarp-gateway"
     volumes:
       - name: yarp-config
         mountPath: /app/appsettings.Production.json
@@ -479,5 +471,7 @@ apps:
     config:
       YARP_API_URL: "https://{{ .Values.security.istio.hosts.hostApi }}"
       KEYCLOAK_URL: "https://{{ .Values.security.istio.hosts.hostId }}"
-      KEYCLOAK_REALM: eshop
-      KEYCLOAK_CLIENTID: reactApp
+    externalSecrets:
+      enabled: true
+      secretStoreName: vault-backend
+      remoteRef: "eshop/{{ .Values.global.environment }}/web-client"
