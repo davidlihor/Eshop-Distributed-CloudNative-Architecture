@@ -13,7 +13,7 @@ spec:
     path: helm/ratelimit
   destination:
     server: https://kubernetes.default.svc
-    namespace: istio-ratelimit
+    namespace: ratelimit-system
   syncPolicy:
     automated:
       prune: true

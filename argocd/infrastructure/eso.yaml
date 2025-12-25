@@ -1,22 +1,28 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: istio-custom-config
+  name: external-secrets
   namespace: argocd
   annotations:
     argocd.argoproj.io/sync-wave: "4"
 spec:
   project: eshop-project
   source:
-    repoURL: https://github.com/davidlihor/Eshop-Distributed-CloudNative-Architecture.git
-    targetRevision: HEAD
-    path: helm/istio
+    repoURL: https://charts.external-secrets.io
+    chart: external-secrets
+    targetRevision: 1.2.0 
+    helm:
+      values: |
+        installCRDs: true
+        webhook:
+          port: 9443
   destination:
     server: https://kubernetes.default.svc
-    namespace: istio-system
+    namespace: external-secrets
   syncPolicy:
     automated:
       prune: true
       selfHeal: true
     syncOptions:
-      - ServerSideApply=true
+      - CreateNamespace=true
+      - ServerSideApply=true 

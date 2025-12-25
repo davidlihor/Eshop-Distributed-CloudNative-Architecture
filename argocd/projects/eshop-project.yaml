@@ -9,27 +9,28 @@ spec:
     - server: https://kubernetes.default.svc
       namespace: eshop-dev
     - server: https://kubernetes.default.svc
+      namespace: eshop-stage
+    - server: https://kubernetes.default.svc
       namespace: eshop-prod
-    - name: infra
-      server: https://kubernetes.default.svc
+    - server: https://kubernetes.default.svc
+      namespace: dev
+    - server: https://kubernetes.default.svc
+      namespace: default
+    - server: https://kubernetes.default.svc
       namespace: istio-system
-    - name: ratelimit-system
-      server: https://kubernetes.default.svc
-      namespace: istio-ratelimit
-    - name: control-plane
-      server: https://kubernetes.default.svc
+    - server: https://kubernetes.default.svc
+      namespace: ratelimit-system
+    - server: https://kubernetes.default.svc
       namespace: argocd
-    - name: rollouts-deployment
-      server: https://kubernetes.default.svc
+    - server: https://kubernetes.default.svc
       namespace: argo-rollouts
-    - name: secrets
-      server: https://kubernetes.default.svc
+    - server: https://kubernetes.default.svc
       namespace: external-secrets
   sourceRepos:
-    - '*'
+    - '*'  
   clusterResourceWhitelist:
-    - group: ''
-      kind: Namespace
+    - group: '*'
+      kind: '*'
   namespaceResourceWhitelist:
     - group: '*'
       kind: '*'

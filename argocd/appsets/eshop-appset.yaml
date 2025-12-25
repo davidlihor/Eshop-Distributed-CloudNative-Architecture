@@ -10,29 +10,43 @@ spec:
     - list:
         elements:
           - env: dev
-            namespace: eshop
-            vFile: values.yaml
-          - env: stage
-            namespace: eshop-stage
-            vFile: values-stage.yaml
-          - env: prod
-            namespace: eshop-prod
-            vFile: values-prod.yaml
+            namespace: eshop-dev
+            vFile: values-dev.yaml
+          # - env: stage
+          #   namespace: eshop-stage
+          #   vFile: values-stage.yaml
+          # - env: prod
+          #   namespace: eshop-prod
+          #   vFile: values-prod.yaml
   template:
     metadata:
       name: eshop-{{env}}
     spec:
-      project: default
+      project: eshop-project
+      ignoreDifferences:
+        - group: networking.istio.io
+          kind: DestinationRule
+          jsonPointers:
+            - /spec/subsets
+        - group: external-secrets.io
+          kind: ExternalSecret
+          jsonPointers:
+            - /spec/dataFrom/0/extract/conversionStrategy
+            - /spec/dataFrom/0/extract/decodingStrategy
+            - /spec/dataFrom/0/extract/metadataPolicy
       source:
         repoURL: https://github.com/davidlihor/Eshop-Distributed-CloudNative-Architecture.git
         targetRevision: HEAD
         path: helm/eshop
         helm:
           valueFiles:
+            - values.yaml
             - "{{vFile}}"
           parameters:
             - name: "global.namespace"
               value: "{{namespace}}"
+            - name: "global.environment"
+              value: "{{env}}"
       destination:
         server: https://kubernetes.default.svc
         namespace: "{{namespace}}"

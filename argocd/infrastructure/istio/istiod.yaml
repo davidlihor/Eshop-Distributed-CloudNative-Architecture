@@ -6,6 +6,19 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-wave: "2"
 spec:
+  ignoreDifferences:
+    - group: admissionregistration.k8s.io
+      kind: ValidatingWebhookConfiguration
+      name: istio-validator-istio-system
+      jsonPointers:
+        - /webhooks/0/failurePolicy
+        - /webhooks/0/clientConfig/caBundle
+    - group: admissionregistration.k8s.io
+      kind: MutatingWebhookConfiguration
+      name: istio-sidecar-injector
+      jsonPointers:
+        - /webhooks/0/failurePolicy
+        - /webhooks/0/clientConfig/caBundle
   project: eshop-project
   source:
     chart: istiod
