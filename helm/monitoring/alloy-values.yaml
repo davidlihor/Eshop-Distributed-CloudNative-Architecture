@@ -1,0 +1,106 @@
+alloy:
+  configMap:
+    create: true
+    content: |
+      logging {
+        level  = "info"
+        format = "logfmt"
+      }
+
+      discovery.kubernetes "all_pods" {
+        role = "pod"
+      }
+
+      loki.source.kubernetes "pod_logs" {
+        targets    = discovery.kubernetes.all_pods.targets
+        forward_to = [loki.write.local.receiver]
+      }
+
+      loki.write "local" {
+        endpoint {
+          url = "http://loki-gateway.monitoring.svc.cluster.local/loki/api/v1/push"
+        }
+      }
+
+      otelcol.receiver.otlp "default" {
+        grpc {
+          endpoint = "0.0.0.0:4317"
+        }
+        http {
+          endpoint = "0.0.0.0:4318"
+        }
+        output {
+          traces = [otelcol.exporter.otlp.tempo.input]
+          metrics = [otelcol.exporter.prometheus.mimir_translate.input]
+        }
+      }
+
+      otelcol.exporter.otlp "tempo" {
+        client {
+          endpoint = "tempo-distributed-distributor.monitoring.svc.cluster.local:4317"
+          tls {
+            insecure = true
+          }
+        }
+      }
+      
+      otelcol.exporter.prometheus "mimir_translate" {
+        forward_to = [prometheus.remote_write.mimir.receiver]
+      }
+
+      prometheus.scrape "labeled_pods" {
+        targets    = discovery.relabel.keep_labeled_only.output
+        forward_to = [prometheus.remote_write.mimir.receiver]
+      }
+
+      discovery.relabel "keep_labeled_only" {
+        targets = discovery.kubernetes.all_pods.targets
+
+        rule {
+          source_labels = ["__meta_kubernetes_pod_annotation_prometheus_io_scrape"]
+          action = "keep"
+          regex = "true"
+        }
+
+        rule {
+          source_labels = ["__meta_kubernetes_pod_annotation_prometheus_io_path"]
+          action = "replace"
+          target_label = "__metrics_path__"
+          regex = "(.+)"
+        }
+
+        rule {
+          source_labels = ["__address__", "__meta_kubernetes_pod_annotation_prometheus_io_port"]
+          action = "replace"
+          regex = "([^:]+)(?::\\d+)?;(\\d+)"
+          replacement = "$1:$2"
+          target_label = "__address__"
+        }
+      }
+
+      prometheus.remote_write "mimir" {
+        endpoint {
+          url = "http://mimir-distributed-distributor.monitoring.svc.cluster.local:8080/api/v1/push"
+          headers = {
+            "X-Scope-OrgID" = "anonymous",
+          }
+        }
+      }
+  extraPorts:
+    - name: otlp-grpc
+      port: 4317
+      targetPort: 4317
+      protocol: TCP
+    - name: otlp-http
+      port: 4318
+      targetPort: 4318
+      protocol: TCP
+  mounts:
+    varlog: true
+    dockercontainers: true
+controller:
+  type: daemonset
+rbac:
+  create: true
+configReloader:
+  enabled: true

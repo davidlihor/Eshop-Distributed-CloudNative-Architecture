@@ -1,0 +1,45 @@
+global:
+  extraEnvFrom:
+    - secretRef:
+        name: tempo-s3-secrets
+  clusterDomain: cluster.local
+storage:
+  trace:
+    backend: s3
+    s3:
+      bucket: tempo
+      endpoint: minio.monitoring.svc.cluster.local:9000
+      insecure: true
+      forcepathstyle: true
+tempo:
+  extraArgs:
+    config.expand-env: "true"
+  structuredConfig:
+    memberlist:
+      abort_if_cluster_join_fails: false
+      join_members:
+        - tempo-distributed-gossip-ring.monitoring.svc.cluster.local
+traces:
+  otlp:
+    grpc:
+      enabled: true
+      port: 4317
+    http:
+      enabled: true
+ingester:
+  replicas: 1
+  config:
+    replication_factor: 1
+    max_block_duration: 5m 
+    complete_block_timeout: 1m
+
+gateway:
+  enabled: true
+querier:
+  replicas: 1
+queryFrontend:
+  replicas: 1
+distributor:
+  replicas: 1
+compactor:
+  replicas: 1

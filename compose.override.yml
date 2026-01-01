@@ -8,8 +8,8 @@ x-dotnet-common-env: &dotnet-common-env
 x-auth-common-env: &auth-common-env
   Authentication__Authority: http://keycloak.identity:8080/realms/eshop
   Authentication__ValidIssuer: http://localhost:8080/realms/eshop
-  Authentication__ClientId: reactApp
-  Authentication__Audience: reactApp
+  Authentication__ClientId: ${KEYCLOAK_CLIENTID}
+  Authentication__Audience: ${KEYCLOAK_AUDIENCE}
 x-dotnet-common-volumes: &dotnet-common-volumes
   - ${HOME}/.microsoft/usersecrets:/home/app/.microsoft/usersecrets:ro
   - ${HOME}/.aspnet/https:/home/app/.aspnet/https:ro

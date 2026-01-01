@@ -1,0 +1,64 @@
+global:
+  extraEnvFrom:
+    - secretRef:
+        name: mimir-s3-secrets
+mimir:
+  memberlist:
+    service:
+      publishNotReadyAddresses: true
+  structuredConfig:
+    common:
+      storage:
+        backend: s3
+        s3:
+          endpoint: minio.monitoring.svc.cluster.local:9000
+          bucket_name: mimir
+          insecure: true
+    memberlist:
+      join_members:
+        - mimir-distributed-gossip-ring.monitoring.svc.cluster.local
+    blocks_storage:
+      backend: s3
+      s3:
+        bucket_name: mimir
+ingester:
+  replicas: 1
+  zoneAwareReplication:
+    enabled: false
+  resources:
+    requests:
+      cpu: "1"
+      memory: "4Gi"
+    limits:
+      cpu: "2"
+      memory: "6Gi" 
+  persistentVolume:
+    size: 20Gi
+    storageClass: "standard"
+  securityContext: &mimirSecurityContext
+    runAsUser: 10001
+    runAsGroup: 10001
+    runAsNonRoot: true
+querier:
+  replicas: 1
+  securityContext: *mimirSecurityContext
+distributor:
+  replicas: 1
+  securityContext: *mimirSecurityContext
+compactor:
+  replicas: 1
+  securityContext: *mimirSecurityContext
+store_gateway:
+  replicas: 1
+  zoneAwareReplication:
+    enabled: false
+  securityContext: *mimirSecurityContext
+query_scheduler:
+  replicas: 1
+  securityContext: *mimirSecurityContext
+alertmanager:
+  enabled: false
+ruler:
+  enabled: false
+minio:
+  enabled: false
