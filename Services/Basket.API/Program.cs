@@ -51,7 +51,7 @@ builder.Services.AddHybridCache(options =>
 builder.Services.AddStackExchangeRedisCache(options =>
 {
     options.Configuration = builder.Configuration.GetConnectionString("Redis");
-    options.InstanceName = "Basket";
+    options.InstanceName = builder.Configuration["RedisInstanceName"] ?? "Basket";
 });
 
 //Grpc Services

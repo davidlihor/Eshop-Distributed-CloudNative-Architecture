@@ -22,6 +22,6 @@ RUN chmod +x /start.sh
 RUN mkdir -p /var/run /var/cache/nginx && chown nginxuser:nginxgroup /var/run /var/cache/nginx
 
 USER nginxuser
-EXPOSE 80
+EXPOSE 8080
 
 CMD ["/start.sh"]

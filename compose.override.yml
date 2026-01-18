@@ -217,5 +217,5 @@ services:
       - yarpapigateway
       - keycloak.identity
     ports:
-      - 6005:80
-      - 6065:80
+      - 6005:8080
+      - 6065:8080
