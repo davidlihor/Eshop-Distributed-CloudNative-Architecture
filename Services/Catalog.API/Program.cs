@@ -1,4 +1,5 @@
 using BuildingBlocks.Messaging.MassTransit;
+using BuildingBlocks.OpenTelemetry;
 using BuildingBlocks.Security;
 using Catalog.API.Mappings;
 using Catalog.API.Services;
@@ -41,6 +42,10 @@ builder.Services.AddMessageBroker(builder.Configuration, assembly);
 builder.Services.AddExceptionHandler<CustomExceptionHandler>();
 builder.Services.AddHealthChecks()
     .AddNpgSql(builder.Configuration.GetConnectionString("Database")!);
+
+var otlpEndpoint = builder.Configuration["Observability:OtlpEndpoint"] ?? "http://localhost:4317";
+builder.Services.AddObservability("Catalog.API", otlpEndpoint);
+builder.Logging.AddObservabilityLogging("Catalog.API", otlpEndpoint);
 
 var app = builder.Build();
 

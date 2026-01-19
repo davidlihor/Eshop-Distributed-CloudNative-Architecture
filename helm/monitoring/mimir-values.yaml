@@ -1,7 +1,5 @@
 global:
-  extraEnvFrom:
-    - secretRef:
-        name: mimir-s3-secrets
+  extraEnvFrom: []
 mimir:
   memberlist:
     service:
@@ -11,16 +9,22 @@ mimir:
       storage:
         backend: s3
         s3:
-          endpoint: minio.monitoring.svc.cluster.local:9000
-          bucket_name: mimir
-          insecure: true
+          bucket_name: eshop-dev-mimir-storage-tgxj
+          endpoint: s3.us-east-1.amazonaws.com
+          region: us-east-1
+          insecure: false
     memberlist:
       join_members:
         - mimir-distributed-gossip-ring.monitoring.svc.cluster.local
     blocks_storage:
       backend: s3
       s3:
-        bucket_name: mimir
+        bucket_name: eshop-dev-mimir-storage-tgxj
+        region: us-east-1
+        endpoint: s3.us-east-1.amazonaws.com
+serviceAccount:
+  create: true
+  name: mimir
 ingester:
   replicas: 1
   zoneAwareReplication:
@@ -34,7 +38,7 @@ ingester:
       memory: "6Gi" 
   persistentVolume:
     size: 20Gi
-    storageClass: "standard"
+    storageClass: "ebs-encrypted-gp3"
   securityContext: &mimirSecurityContext
     runAsUser: 10001
     runAsGroup: 10001

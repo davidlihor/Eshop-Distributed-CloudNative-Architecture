@@ -1,16 +1,14 @@
 global:
-  extraEnvFrom:
-    - secretRef:
-        name: tempo-s3-secrets
+  extraEnvFrom: []
   clusterDomain: cluster.local
 storage:
   trace:
     backend: s3
     s3:
-      bucket: tempo
-      endpoint: minio.monitoring.svc.cluster.local:9000
-      insecure: true
-      forcepathstyle: true
+      bucket: eshop-dev-tempo-storage-tgxj
+      region: us-east-1
+      endpoint: s3.us-east-1.amazonaws.com
+      forcepathstyle: false
 tempo:
   extraArgs:
     config.expand-env: "true"
@@ -19,6 +17,9 @@ tempo:
       abort_if_cluster_join_fails: false
       join_members:
         - tempo-distributed-gossip-ring.monitoring.svc.cluster.local
+serviceAccount:
+  create: true
+  name: tempo
 traces:
   otlp:
     grpc:

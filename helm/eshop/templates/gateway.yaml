@@ -1,20 +1,39 @@
-apiVersion: networking.istio.io/v1
+apiVersion: gateway.networking.k8s.io/v1
 kind: Gateway
 metadata:
   name: eshop-gateway
+  namespace: istio-system
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-type: "external"
+    service.beta.kubernetes.io/aws-load-balancer-nlb-target-type: "ip"
+    service.beta.kubernetes.io/aws-load-balancer-scheme: "internet-facing"
+    service.beta.kubernetes.io/aws-load-balancer-manage-backend-security-group-rules: "true"
+spec:
+  gatewayClassName: istio
+  listeners:
+  - name: https
+    port: 443
+    protocol: HTTPS
+    tls:
+      mode: Terminate
+      certificateRefs:
+      - name: {{ .Values.security.istio.tlsSecret }}
+    allowedRoutes:
+      namespaces:
+        from: All
+---
+apiVersion: gateway.networking.k8s.io/v1beta1
+kind: ReferenceGrant
+metadata:
+  name: allow-gateway-to-eshop
   namespace: {{ $.Values.global.namespace }}
 spec:
-  selector:
-    istio: ingressgateway
-  servers:
-    - port:
-        number: 443
-        name: https
-        protocol: HTTPS
-      tls:
-        mode: SIMPLE
-        credentialName: {{ .Values.security.istio.tlsSecret }}
-      hosts:
-        - {{ .Values.security.istio.hosts.hostApp }}
-        - {{ .Values.security.istio.hosts.hostApi }}
-        - {{ .Values.security.istio.hosts.hostId }}
+  from:
+  - group: gateway.networking.k8s.io
+    kind: Gateway
+    namespace: istio-system
+  to:
+  - group: ""
+    kind: Service
+  - group: ""
+    kind: Secret

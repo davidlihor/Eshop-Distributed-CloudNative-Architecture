@@ -2,6 +2,7 @@ using BuildingBlocks.Exceptions.Handler;
 using BuildingBlocks.Messaging.Discount;
 using BuildingBlocks.Messaging.MassTransit;
 using BuildingBlocks.Messaging.Product;
+using BuildingBlocks.OpenTelemetry;
 using BuildingBlocks.Resilience;
 using BuildingBlocks.Security;
 using HealthChecks.UI.Client;
@@ -68,6 +69,10 @@ builder.Services.AddExceptionHandler<CustomExceptionHandler>();
 builder.Services.AddHealthChecks()
     .AddNpgSql(builder.Configuration.GetConnectionString("Database")!)
     .AddRedis(builder.Configuration.GetConnectionString("Redis")!);
+
+var otlpEndpoint = builder.Configuration["Observability:OtlpEndpoint"] ?? "http://localhost:4317";
+builder.Services.AddObservability("Basket.API", otlpEndpoint);
+builder.Logging.AddObservabilityLogging("Basket.API", otlpEndpoint);
 
 var app = builder.Build();
 

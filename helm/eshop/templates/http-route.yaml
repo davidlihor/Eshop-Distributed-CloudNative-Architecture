@@ -1,0 +1,59 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: eshop-app-route
+  namespace: {{ $.Values.global.namespace }}
+spec:
+  parentRefs:
+  - name: eshop-gateway
+    namespace: istio-system
+  hostnames:
+  - {{ .Values.security.istio.hosts.hostApp | quote }}
+  rules:
+  - matches:
+    - path: 
+        type: PathPrefix
+        value: /
+    backendRefs:
+    - name: web-client-clusterip
+      port: 80
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: eshop-api-route
+  namespace: {{ $.Values.global.namespace }}
+spec:
+  parentRefs:
+  - name: eshop-gateway
+    namespace: istio-system
+  hostnames:
+  - {{ .Values.security.istio.hosts.hostApi | quote }}
+  rules:
+  - matches:
+    - path: 
+        type: PathPrefix
+        value: /
+    backendRefs:
+    - name: yarp-api-gateway-clusterip
+      port: 80
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: eshop-id-route
+  namespace: {{ $.Values.global.namespace }}
+spec:
+  parentRefs:
+  - name: eshop-gateway
+    namespace: istio-system
+  hostnames:
+  - {{ .Values.security.istio.hosts.hostId | quote }}
+  rules:
+  - matches:
+    - path: 
+        type: PathPrefix
+        value: /
+    backendRefs:
+    - name: keycloak-clusterip
+      port: 8080

@@ -1,7 +1,5 @@
 global:
-  extraEnvFrom:
-    - secretRef:
-        name: loki-s3-secrets
+  extraEnvFrom: []
 loki:
   deploymentMode: SimpleScalable
   auth_enabled: false
@@ -10,14 +8,11 @@ loki:
   storage:
     type: s3
     bucketNames:
-      chunks: loki
-      ruler: loki
-      admin: loki
+      chunks: eshop-dev-loki-storage-tgxj
+      ruler: eshop-dev-loki-storage-tgxj
+      admin: eshop-dev-loki-storage-tgxj
     s3:
-      endpoint: minio.monitoring.svc.cluster.local:9000
       region: us-east-1
-      insecure: true
-      s3ForcePathStyle: true
   limits_config:
     retention_period: 168h
   schemaConfig:
@@ -29,6 +24,9 @@ loki:
         index:
           prefix: index_
           period: 24h
+serviceAccount:
+  create: true
+  name: loki
 memberlist:
   service:
     publishNotReadyAddresses: true

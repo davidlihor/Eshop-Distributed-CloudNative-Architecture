@@ -11,7 +11,7 @@ public static class DependencyInjection
         services.AddCarter();
         services.AddExceptionHandler<CustomExceptionHandler>();
         services.AddHealthChecks()
-            .AddSqlServer(configuration.GetConnectionString("Database")!);
+            .AddNpgSql(configuration.GetConnectionString("Database")!);
 
         return services;
     }

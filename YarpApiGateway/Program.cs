@@ -1,4 +1,7 @@
+using BuildingBlocks.OpenTelemetry;
 using BuildingBlocks.Security;
+using HealthChecks.UI.Client;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -29,6 +32,11 @@ builder.Services.AddRateLimiter(rateLimiterOptions =>
     });
 });
 builder.Services.AddJwtAuthentication(builder.Configuration);
+builder.Services.AddHealthChecks();
+
+var otlpEndpoint = builder.Configuration["Observability:OtlpEndpoint"] ?? "http://localhost:4317";
+builder.Services.AddObservability("Yarp.ReverseProxy", otlpEndpoint);
+builder.Logging.AddObservabilityLogging("Yarp.ReverseProxy", otlpEndpoint);
 
 var app = builder.Build();
 
@@ -36,5 +44,9 @@ app.UseCors("CorsPolicy");
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseRateLimiter();
+app.UseHealthChecks("/health", new HealthCheckOptions
+{
+    ResponseWriter = UIResponseWriter.WriteHealthCheckUIResponse
+});
 app.MapReverseProxy();
 app.Run();

@@ -1,11 +1,13 @@
 ﻿using System.Net;
 using System.Reflection;
 using BuildingBlocks.Messaging.Product;
+using BuildingBlocks.OpenTelemetry;
 using BuildingBlocks.Resilience;
 using MassTransit;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Ordering.Application.Common;
 using Ordering.Application.Orders.EventHandlers.Integration;
 using Ordering.Infrastructure.Caching;
@@ -23,6 +25,7 @@ public static class DependencyInjection
         this IServiceCollection services,
         IConfiguration configuration,
         IHostEnvironment environment,
+        ILoggingBuilder logging,
         Assembly assembly)
     {
         services.AddScoped<AuditableEntityInterceptor>();
@@ -34,7 +37,7 @@ public static class DependencyInjection
             var eventsInterceptor = sp.GetRequiredService<DispatchDomainEventsInterceptor>();
 
             options.AddInterceptors(entityInterceptor, eventsInterceptor);
-            options.UseSqlServer(configuration.GetConnectionString("Database"));
+            options.UseNpgsql(configuration.GetConnectionString("Database"));
         });
         services.AddScoped<IApplicationDbContext, ApplicationDbContext>();
 
@@ -78,6 +81,10 @@ public static class DependencyInjection
                 configurator.ConfigureEndpoints(context);
             });
         });
+
+        var otlpEndpoint = configuration["Observability:OtlpEndpoint"] ?? "http://localhost:4317";
+        services.AddObservability("Ordering.API", otlpEndpoint);
+        logging.AddObservabilityLogging("Ordering.API", otlpEndpoint);
 
         return services;
     }

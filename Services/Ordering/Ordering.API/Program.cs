@@ -9,7 +9,7 @@ var applicationAssembly = typeof(Ordering.Application.Config.DependencyInjection
 
 builder.Services
     .AddApplicationServices(builder.Configuration)
-    .AddInfrastructureServices(builder.Configuration, builder.Environment, applicationAssembly)
+    .AddInfrastructureServices(builder.Configuration, builder.Environment, builder.Logging, applicationAssembly)
     .AddApiServices(builder.Configuration);
 
 builder.Services.AddJwtAuthentication(builder.Configuration);
