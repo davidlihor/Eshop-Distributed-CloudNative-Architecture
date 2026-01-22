@@ -1,16 +1,7 @@
 {{- range .Values.apps }}
 {{- $appName := .name }}
-{{- $shouldDeploy := true }}
 
-{{- if hasKey . "type" }}
-  {{- if eq .type "infra" }}
-    {{- if not $.Values.global.deployInfrastructure }}
-      {{- $shouldDeploy = false }}
-    {{- end }}
-  {{- end }}
-{{- end }}
-
-{{- if $shouldDeploy }}
+{{- if or (ne (default "" .type) "infra") $.Values.global.deployInfrastructure }}
 ---
 {{- if or (hasKey . "canary") (and (hasKey . "blueGreen") .blueGreen) }}
 apiVersion: argoproj.io/v1alpha1

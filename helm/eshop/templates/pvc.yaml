@@ -1,4 +1,6 @@
 {{- range .Values.apps }}
+{{- $app := . }}
+{{- if or (ne (default "" .type) "infra") $.Values.global.deployInfrastructure }}
 {{- range .volumes }}
 {{- if eq .type "pvc" }}
 ---
@@ -14,6 +16,7 @@ spec:
   volumeMode: Filesystem
   accessModes:
     - ReadWriteOnce
+{{- end }}
 {{- end }}
 {{- end }}
 {{- end }}

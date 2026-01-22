@@ -26,6 +26,8 @@ spec:
       namespace: argo-rollouts
     - server: https://kubernetes.default.svc
       namespace: external-secrets
+    - server: https://kubernetes.default.svc
+      namespace: monitoring
   sourceRepos:
     - '*'  
   clusterResourceWhitelist:

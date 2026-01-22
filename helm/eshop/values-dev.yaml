@@ -1,5 +1,6 @@
 global:
   istioInjection: true
+  deployInfrastructure: false
   namespace: eshop-dev
   environment: dev
   ns: false

@@ -15,12 +15,20 @@ defaultResources:
   requests:
     cpu: "250m"
     memory: "512Mi"
-prometheus:
-  enabled: false
-  namespaceSelector:
-    matchNames:
-      - default
-      - eshop
+aws:
+  region: us-east-1
+  rds:
+    host: ""
+    port: 5432
+  valkey:
+    host: ""
+    port: 6379
+  amazonmq:
+    host: ""
+    ports:
+      amqp: 5672
+      amqps: 5671
+      management: 15672
 security:
   istio:
     enabled: true
@@ -311,6 +319,7 @@ apps:
       port: 8080
 
   - name: basket-api
+    imagePullPolicy: Always
     image:
       repository: davidlihor/basketapi
       tag: latest

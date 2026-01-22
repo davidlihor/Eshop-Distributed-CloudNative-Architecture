@@ -1,0 +1,86 @@
+{{- if .Values.security.istio.enabled }}
+---
+apiVersion: networking.istio.io/v1
+kind: ServiceEntry
+metadata:
+  name: aws-rds-postgres
+  namespace: {{ $.Values.global.namespace }}
+spec:
+  hosts:
+  - {{ .Values.aws.rds.host | quote }}
+  ports:
+  - number: {{ .Values.aws.rds.port }}
+    name: postgres
+    protocol: TLS
+  location: MESH_EXTERNAL
+  resolution: DNS
+---
+apiVersion: networking.istio.io/v1
+kind: ServiceEntry
+metadata:
+  name: aws-valkey
+  namespace: {{ $.Values.global.namespace }}
+spec:
+  hosts:
+  - {{ .Values.aws.valkey.host | quote }}
+  ports:
+  - number: {{ .Values.aws.valkey.port }}
+    name: redis
+    protocol: TLS
+  location: MESH_EXTERNAL
+  resolution: DNS
+---
+apiVersion: networking.istio.io/v1
+kind: ServiceEntry
+metadata:
+  name: aws-amazonmq
+  namespace: {{ $.Values.global.namespace }}
+spec:
+  hosts:
+  - {{ .Values.aws.amazonmq.host | quote }}
+  ports:
+  - number: {{ .Values.aws.amazonmq.ports.amqps }}
+    name: amqps
+    protocol: TLS
+  - number: {{ .Values.aws.amazonmq.ports.amqp }}
+    name: amqp
+    protocol: TLS
+  - number: {{ .Values.aws.amazonmq.ports.management }}
+    name: rabbitmq-mgmt
+    protocol: TLS
+  location: MESH_EXTERNAL
+  resolution: DNS
+---
+apiVersion: networking.istio.io/v1
+kind: DestinationRule
+metadata:
+  name: aws-rds-postgres-tls
+  namespace: {{ $.Values.global.namespace }}
+spec:
+  host: "*.rds.amazonaws.com"
+  trafficPolicy:
+    tls:
+      mode: SIMPLE
+---
+apiVersion: networking.istio.io/v1
+kind: DestinationRule
+metadata:
+  name: aws-valkey-tls
+  namespace: {{ $.Values.global.namespace }}
+spec:
+  host: "*.cache.amazonaws.com"
+  trafficPolicy:
+    tls:
+      mode: DISABLE
+---
+apiVersion: networking.istio.io/v1
+kind: DestinationRule
+metadata:
+  name: aws-amazonmq-tls
+  namespace: {{ $.Values.global.namespace }}
+spec:
+  host: "*.mq.{{ .Values.aws.region }}.on.aws"
+  trafficPolicy:
+    tls:
+      mode: DISABLE
+{{- end }}

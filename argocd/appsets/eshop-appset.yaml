@@ -51,6 +51,10 @@ spec:
         server: https://kubernetes.default.svc
         namespace: "{{namespace}}"
       syncPolicy:
+        managedNamespaceMetadata:
+          labels:
+            istio-injection: enabled
+            environment: "{{env}}"
         automated:
           prune: true
           selfHeal: true
