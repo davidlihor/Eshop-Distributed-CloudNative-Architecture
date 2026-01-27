@@ -1,5 +1,4 @@
 {{- range .Values.services }}
-{{- if or (eq .strategyType "canary") (eq .strategyType "blueGreen") }}
 ---
 apiVersion: networking.istio.io/v1
 kind: DestinationRule
@@ -8,15 +7,6 @@ metadata:
   namespace: {{ $.Values.global.namespace }}
 spec:
   host: {{ .name }}.{{ $.Values.global.namespace }}.svc.cluster.local
-  {{- if eq .strategyType "canary" }}
-  subsets:
-    - name: stable
-      labels:
-        app: {{ .selector }}
-    - name: canary
-      labels:
-        app: {{ .selector }}
-  {{- end }}
   trafficPolicy:
     tls:
       mode: ISTIO_MUTUAL
@@ -30,5 +20,4 @@ spec:
       consecutive5xxErrors: 5
       interval: 5s
       baseEjectionTime: 30s
-{{- end }}
 {{- end }}

@@ -21,26 +21,6 @@ spec:
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
-  name: eshop-api-route
-  namespace: {{ $.Values.global.namespace }}
-spec:
-  parentRefs:
-  - name: eshop-gateway
-    namespace: istio-system
-  hostnames:
-  - {{ .Values.security.istio.hosts.hostApi | quote }}
-  rules:
-  - matches:
-    - path: 
-        type: PathPrefix
-        value: /
-    backendRefs:
-    - name: yarp-api-gateway-clusterip
-      port: 80
----
-apiVersion: gateway.networking.k8s.io/v1
-kind: HTTPRoute
-metadata:
   name: eshop-id-route
   namespace: {{ $.Values.global.namespace }}
 spec:
@@ -57,3 +37,201 @@ spec:
     backendRefs:
     - name: keycloak-clusterip
       port: 8080
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: catalog-api-http-route
+  namespace: {{ $.Values.global.namespace }}
+spec:
+  parentRefs:
+  - group: gateway.networking.k8s.io
+    kind: Gateway
+    name: eshop-gateway
+    namespace: istio-system 
+  hostnames:
+  - {{ .Values.security.istio.hosts.hostApi | quote }}
+  rules:
+  - matches:
+    - path: 
+        type: PathPrefix
+        value: /catalog-service/
+    filters:
+    - type: URLRewrite
+      urlRewrite:
+        path:
+          type: ReplacePrefixMatch
+          replacePrefixMatch: /
+    - type: CORS
+      cors:
+        allowOrigins:
+        - "https://{{ .Values.security.istio.hosts.hostApp }}"
+        allowMethods:
+        - GET
+        - POST
+        - PUT
+        - DELETE
+        - OPTIONS
+        allowHeaders:
+        - Content-Type
+        - Authorization
+        - X-Requested-With
+        allowCredentials: true
+        maxAge: 86400
+    backendRefs:
+    - name: catalog-clusterip
+      port: 80
+      weight: 100
+    - name: catalog-clusterip-canary
+      port: 80
+      weight: 0
+      filters:
+      - type: RequestHeaderModifier
+        requestHeaderModifier:
+          add:
+          - name: x-version
+            value: canary
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: basket-api-route
+  namespace: {{ $.Values.global.namespace }}
+spec:
+  parentRefs:
+  - group: gateway.networking.k8s.io
+    kind: Gateway
+    name: eshop-gateway
+    namespace: istio-system 
+  hostnames:
+  - {{ .Values.security.istio.hosts.hostApi | quote }}
+  rules:
+  - matches:
+    - path: 
+        type: PathPrefix
+        value: /basket-service/
+    filters:
+    - type: URLRewrite
+      urlRewrite:
+        path:
+          type: ReplacePrefixMatch
+          replacePrefixMatch: /
+    - type: CORS
+      cors:
+        allowOrigins:
+        - "https://{{ .Values.security.istio.hosts.hostApp }}"
+        allowMethods:
+        - GET
+        - POST
+        - PUT
+        - DELETE
+        - OPTIONS
+        allowHeaders:
+        - Content-Type
+        - Authorization
+        - X-Requested-With
+        allowCredentials: true
+        maxAge: 86400
+    backendRefs:
+    - name: basket-clusterip
+      port: 80
+      weight: 100
+    - name: basket-clusterip-canary
+      port: 80
+      weight: 0
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: discount-grpc-route
+  namespace: {{ $.Values.global.namespace }}
+spec:
+  parentRefs:
+  - group: gateway.networking.k8s.io
+    kind: Gateway
+    name: eshop-gateway
+    namespace: istio-system 
+  hostnames:
+  - {{ .Values.security.istio.hosts.hostApi | quote }}
+  rules:
+  - matches:
+    - path: 
+        type: PathPrefix
+        value: /discount-service/
+    filters:
+    - type: URLRewrite
+      urlRewrite:
+        path:
+          type: ReplacePrefixMatch
+          replacePrefixMatch: /
+    - type: CORS
+      cors:
+        allowOrigins:
+        - "https://{{ .Values.security.istio.hosts.hostApp }}"
+        allowMethods:
+        - GET
+        - POST
+        - PUT
+        - DELETE
+        - OPTIONS
+        allowHeaders:
+        - Content-Type
+        - Authorization
+        - X-Requested-With
+        allowCredentials: true
+        maxAge: 86400
+    backendRefs:
+    - name: discount-clusterip
+      port: 80
+      weight: 100
+    - name: discount-clusterip-canary
+      port: 80
+      weight: 0
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: ordering-api-route
+  namespace: {{ $.Values.global.namespace }}
+spec:
+  parentRefs:
+  - group: gateway.networking.k8s.io
+    kind: Gateway
+    name: eshop-gateway
+    namespace: istio-system 
+  hostnames:
+  - {{ .Values.security.istio.hosts.hostApi | quote }}
+  rules:
+  - matches:
+    - path: 
+        type: PathPrefix
+        value: /ordering-service/
+    filters:
+    - type: URLRewrite
+      urlRewrite:
+        path:
+          type: ReplacePrefixMatch
+          replacePrefixMatch: /
+    - type: CORS
+      cors:
+        allowOrigins:
+        - "https://{{ .Values.security.istio.hosts.hostApp }}"
+        allowMethods:
+        - GET
+        - POST
+        - PUT
+        - DELETE
+        - OPTIONS
+        allowHeaders:
+        - Content-Type
+        - Authorization
+        - X-Requested-With
+        allowCredentials: true
+        maxAge: 86400
+    backendRefs:
+    - name: ordering-clusterip
+      port: 80
+      weight: 100
+    - name: ordering-clusterip-canary
+      port: 80
+      weight: 0

@@ -69,7 +69,7 @@ spec:
       context: GATEWAY
       routeConfiguration:
         vhost:
-          name: api.eshop.local:443
+          name: {{ .Values.security.istio.hosts.hostApi | quote }}:443
     patch:
       operation: MERGE
       value:
@@ -90,7 +90,7 @@ spec:
       context: GATEWAY
       routeConfiguration:
         vhost:
-          name: app.eshop.local:443
+          name: {{ .Values.security.istio.hosts.hostApp | quote }}:443
     patch:
       operation: MERGE
       value:
@@ -111,7 +111,7 @@ spec:
       context: GATEWAY
       routeConfiguration:
         vhost:
-          name: id.eshop.local:443
+          name: {{ .Values.security.istio.hosts.hostId | quote }}:443
     patch:
       operation: MERGE
       value:

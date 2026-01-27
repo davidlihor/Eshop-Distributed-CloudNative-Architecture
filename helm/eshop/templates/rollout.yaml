@@ -19,16 +19,14 @@ spec:
   {{- if hasKey . "canary" }}
   strategy:
     canary:
+      stableService: {{ .svc }}
+      canaryService: {{ .svc }}-canary
       trafficRouting:
-        istio:
-          virtualService:
-            name: {{ .name }}-vs
-            routes:
-              {{- toYaml .canary | nindent 14 }}
-          destinationRule:
-            name: {{ .name }}-dr
-            stableSubsetName: stable
-            canarySubsetName: canary
+        plugins:
+          argoproj-labs/gatewayAPI:
+            httpRoute: {{ .svc }}-http-route
+            grpcRoute: {{ .svc }}-grpc-route
+            namespace: {{ $.Values.global.namespace }}
       steps:
         - setWeight: 5
         - pause: { duration: 5m }
@@ -45,6 +43,13 @@ spec:
       previewService: {{ .svc }}-preview
       autoPromotionEnabled: false
       abortScaleDownDelaySeconds: 30
+      trafficRouting:
+        plugins:
+          argoproj-labs/gatewayAPI:
+            httpRoute: {{ .svc }}-http-route
+            grpcRoute: {{ .svc }}-grpc-route
+            namespace: {{ $.Values.global.namespace }}
+
   {{- end }}
   revisionHistoryLimit: {{ coalesce .revisionHistoryLimit $.Values.global.revisionHistoryLimit 5 }}
   replicas: {{ .replicaCount }}

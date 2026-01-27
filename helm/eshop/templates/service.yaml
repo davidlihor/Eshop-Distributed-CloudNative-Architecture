@@ -10,21 +10,38 @@ metadata:
 spec:
   selector:
     app: {{ .selector }}
-  type: {{ .type }}
+  type: {{ default "ClusterIP" .type }}
   ports:
-    {{- toYaml .ports | nindent 4 }}
-{{- if eq .strategyType "blueGreen" }}
+    {{- range .ports }}
+    - name: {{ .name }}
+      port: {{ .port }}
+      targetPort: {{ .targetPort }}
+      {{- if .protocol }}
+      protocol: {{ .protocol }}
+      {{- end }}
+    {{- end }}
+
+{{- if hasKey . "strategyType" }}
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ .name }}-preview
+  name: {{ .name }}-{{ if eq .strategyType "blueGreen" }}preview{{ else }}canary{{ end }}
   namespace: {{ $.Values.global.namespace }}
+  labels:
+    app: {{ .name }}
 spec:
   selector:
     app: {{ .selector }}
-  type: {{ .type }}
+  type: {{ default "ClusterIP" .type }}
   ports:
-    {{- toYaml .ports | nindent 4 }}
+    {{- range .ports }}
+    - name: {{ .name }}
+      port: {{ .port }}
+      targetPort: {{ .targetPort }}
+      {{- if .protocol }}
+      protocol: {{ .protocol }}
+      {{- end }}
+    {{- end }}
 {{- end }}
 {{- end }}

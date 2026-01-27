@@ -16,13 +16,91 @@ data:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: mssql-conf
+  name: yarp-config
   namespace: {{ $.Values.global.namespace }}
 data:
-  mssql.conf: |
-    [filelocation]
-    defaultdatadir = /var/opt/mssql/userdata
-    defaultlogdir = /var/opt/mssql/userdata
+  appsettings.Production.json: |
+    {
+      "ReverseProxy": {
+        "Routes": {
+          "catalog-route": {
+            "ClusterId": "catalog-cluster",
+            "Match": {
+              "Path": "/catalog-service/{**catch-all}"
+            },
+            "Transforms": [
+              {
+                "PathPattern": "{**catch-all}"
+              }
+            ]
+          },
+          "basket-route": {
+            "ClusterId": "basket-cluster",
+            "Match": {
+              "Path": "/basket-service/{**catch-all}"
+            },
+            "Transforms": [
+              {
+                "PathPattern": "{**catch-all}"
+              }
+            ]
+          },
+          "discount-route": {
+            "ClusterId": "discount-cluster",
+            "Match": {
+              "Path": "/discount-service/{**catch-all}"
+            },
+            "Transforms": [
+              {
+                "PathPattern": "{**catch-all}"
+              }
+            ]
+          },
+          "ordering-route": {
+            "ClusterId": "ordering-cluster",
+            "RateLimiterPolicy": "fixed",
+            "Match": {
+              "Path": "/ordering-service/{**catch-all}"
+            },
+            "Transforms": [
+              {
+                "PathPattern": "{**catch-all}"
+              }
+            ]
+          }
+        },
+        "Clusters": {
+          "catalog-cluster": {
+            "Destinations": {
+              "destination1": {
+                "Address": "http://catalog-clusterip"
+              }
+            }
+          },
+          "basket-cluster": {
+            "Destinations": {
+              "destination1": {
+                "Address": "http://basket-clusterip"
+              }
+            }
+          },
+          "discount-cluster": {
+            "Destinations": {
+              "destination1": {
+                "Address": "http://discount-clusterip"
+              }
+            }
+          },
+          "ordering-cluster": {
+            "Destinations": {
+              "destination1": {
+                "Address": "http://ordering-clusterip"
+              }
+            }
+          }
+        }
+      }
+    }
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -137,92 +215,4 @@ data:
         ]
       }
     ]
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: yarp-config
-  namespace: {{ $.Values.global.namespace }}
-data:
-  appsettings.Production.json: |
-    {
-      "ReverseProxy": {
-        "Routes": {
-          "catalog-route": {
-            "ClusterId": "catalog-cluster",
-            "Match": {
-              "Path": "/catalog-service/{**catch-all}"
-            },
-            "Transforms": [
-              {
-                "PathPattern": "{**catch-all}"
-              }
-            ]
-          },
-          "basket-route": {
-            "ClusterId": "basket-cluster",
-            "Match": {
-              "Path": "/basket-service/{**catch-all}"
-            },
-            "Transforms": [
-              {
-                "PathPattern": "{**catch-all}"
-              }
-            ]
-          },
-          "discount-route": {
-            "ClusterId": "discount-cluster",
-            "Match": {
-              "Path": "/discount-service/{**catch-all}"
-            },
-            "Transforms": [
-              {
-                "PathPattern": "{**catch-all}"
-              }
-            ]
-          },
-          "ordering-route": {
-            "ClusterId": "ordering-cluster",
-            "RateLimiterPolicy": "fixed",
-            "Match": {
-              "Path": "/ordering-service/{**catch-all}"
-            },
-            "Transforms": [
-              {
-                "PathPattern": "{**catch-all}"
-              }
-            ]
-          }
-        },
-        "Clusters": {
-          "catalog-cluster": {
-            "Destinations": {
-              "destination1": {
-                "Address": "http://catalog-clusterip"
-              }
-            }
-          },
-          "basket-cluster": {
-            "Destinations": {
-              "destination1": {
-                "Address": "http://basket-clusterip"
-              }
-            }
-          },
-          "discount-cluster": {
-            "Destinations": {
-              "destination1": {
-                "Address": "http://discount-clusterip"
-              }
-            }
-          },
-          "ordering-cluster": {
-            "Destinations": {
-              "destination1": {
-                "Address": "http://ordering-clusterip"
-              }
-            }
-          }
-        }
-      }
-    }
+    

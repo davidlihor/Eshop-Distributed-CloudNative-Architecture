@@ -1,0 +1,4 @@
+hosts:
+  hostApp: app.eshop.local
+  hostApi: api.eshop.local
+  hostId: id.eshop.local

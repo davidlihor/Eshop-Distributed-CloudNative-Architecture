@@ -18,13 +18,13 @@ defaultResources:
 aws:
   region: us-east-1
   rds:
-    host: ""
+    host: "*"
     port: 5432
   valkey:
-    host: ""
+    host: "*"
     port: 6379
   amazonmq:
-    host: ""
+    host: "*"
     ports:
       amqp: 5672
       amqps: 5671
@@ -42,21 +42,18 @@ security:
 services:
   - name: catalogdb-svc
     selector: catalog-db
-    type: ClusterIP
     ports:
     - name: tcp
       port: 5432
 
   - name: basketdb-svc
     selector: basket-db
-    type: ClusterIP
     ports:
     - name: tcp
       port: 5432
 
   - name: orderdb-svc
     selector: order-db
-    type: ClusterIP
     ports:
     - name: tcp
       port: 1433
@@ -64,21 +61,18 @@ services:
 
   - name: keycloak-db-svc
     selector: keycloak-db
-    type: ClusterIP
     ports:
     - name: tcp
       port: 5432
 
   - name: redis-svc
     selector: redis
-    type: ClusterIP
     ports:
     - name: tcp
       port: 6379
 
   - name: rabbitmq-svc
     selector: rabbit-mq
-    type: ClusterIP
     ports:
     - name: amqp
       port: 5672
@@ -89,7 +83,6 @@ services:
 
   - name: keycloak-clusterip
     selector: keycloak-svc
-    type: ClusterIP
     ports:
     - name: http
       port: 8080
@@ -97,19 +90,19 @@ services:
   - name: catalog-clusterip
     strategyType: canary
     selector: catalog-api
-    type: ClusterIP
     ports:
     - name: http
+      protocol: http  
       port: 80
-      targetPort: 8080
+      targetPort: 8080   
     - name: grpc
-      port: 8080
+      protocol: grpc 
+      port: 8081
       targetPort: 8081
 
   - name: basket-clusterip
     strategyType: blueGreen
     selector: basket-api
-    type: ClusterIP
     ports:
     - name: http
       port: 80
@@ -117,18 +110,18 @@ services:
 
   - name: discount-clusterip
     selector: discount-grpc
-    type: ClusterIP
     ports:
     - name: http
+      protocol: http
       port: 80
       targetPort: 8080
     - name: grpc
+      protocol: grpc 
       port: 8080
       targetPort: 8081
 
   - name: ordering-clusterip
     selector: ordering-api
-    type: ClusterIP
     ports:
     - name: http
       port: 80
@@ -136,7 +129,6 @@ services:
 
   - name: yarp-api-gateway-clusterip
     selector: yarp-api-gateway
-    type: ClusterIP
     ports:
     - name: http
       port: 80
@@ -144,7 +136,6 @@ services:
 
   - name: web-client-clusterip
     selector: web-client
-    type: ClusterIP
     ports:
     - name: http
       port: 80
@@ -192,24 +183,20 @@ apps:
   - name: order-db
     type: infra
     image:
-      repository: mcr.microsoft.com/mssql/server
-      tag: 2022-latest
+      repository: postgres
+      tag: latest
     labels: 
       app: order-db
       proj: eshop
     replicaCount: 1
     revisionHistoryLimit: 2
     ports:
-      - port: 1433
+      - port: 5432
     externalSecrets:
       secretStoreName: aws-secrets-backend
     volumes:
-      - name: mssql-conf
-        mountPath: /var/opt/mssql/mssql.conf
-        subPath: mssql.conf
-        type: configMap
       - name: order-volume
-        mountPath: /var/opt/mssql/userdata
+        mountPath: /postgres-data
         type: pvc
 
   - name: keycloak-db
@@ -298,7 +285,9 @@ apps:
     sa: catalog-sa
     ports: 
       - port: 8080
+        name: http
       - port: 8081
+        name: grpc
     config:
       ASPNETCORE_ENVIRONMENT: Development
       Authentication__Authority: http://keycloak-clusterip:8080/realms/eshop
@@ -319,7 +308,6 @@ apps:
       port: 8080
 
   - name: basket-api
-    imagePullPolicy: Always
     image:
       repository: davidlihor/basketapi
       tag: latest
@@ -333,7 +321,7 @@ apps:
       - port: 8080
     config:
       ASPNETCORE_ENVIRONMENT: Development
-      GrpcSettings__CatalogUrl: http://catalog-clusterip:8080
+      GrpcSettings__CatalogUrl: http://catalog-clusterip:8081
       GrpcSettings__DiscountUrl: http://discount-clusterip:8080
       Authentication__Authority: http://keycloak-clusterip:8080/realms/eshop
       Authentication__ValidIssuer: "https://{{ .Values.security.istio.hosts.hostId }}/realms/eshop"
