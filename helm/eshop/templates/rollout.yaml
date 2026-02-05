@@ -3,7 +3,7 @@
 
 {{- if or (ne (default "" .type) "infra") $.Values.global.deployInfrastructure }}
 ---
-{{- if or (hasKey . "canary") (and (hasKey . "blueGreen") .blueGreen) }}
+{{- if hasKey . "strategyType" }}
 apiVersion: argoproj.io/v1alpha1
 kind: Rollout
 {{- else }}
@@ -16,7 +16,7 @@ metadata:
   labels:
     {{- toYaml .labels | nindent 4 }}
 spec:
-  {{- if hasKey . "canary" }}
+  {{- if eq .strategyType "canary" }}
   strategy:
     canary:
       stableService: {{ .svc }}
@@ -34,22 +34,15 @@ spec:
         - pause: { duration: 5m }
         - setWeight: 15
         - pause: { duration: 5m }
-        - setWeight: 20
+        - setWeight: 50
         - pause: {}
-  {{- else if and (hasKey . "blueGreen") .blueGreen }}
+  {{- else if eq .strategyType "blueGreen" }}
   strategy:
     blueGreen:
       activeService: {{ .svc }}
       previewService: {{ .svc }}-preview
       autoPromotionEnabled: false
       abortScaleDownDelaySeconds: 30
-      trafficRouting:
-        plugins:
-          argoproj-labs/gatewayAPI:
-            httpRoute: {{ .svc }}-http-route
-            grpcRoute: {{ .svc }}-grpc-route
-            namespace: {{ $.Values.global.namespace }}
-
   {{- end }}
   revisionHistoryLimit: {{ coalesce .revisionHistoryLimit $.Values.global.revisionHistoryLimit 5 }}
   replicas: {{ .replicaCount }}

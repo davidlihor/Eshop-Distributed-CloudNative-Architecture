@@ -16,4 +16,17 @@ security:
       hostApp: app.eshop.dev
       hostApi: api.eshop.dev
       hostId: id.eshop.dev
-
+aws:
+  region: us-east-1
+  rds:
+    host: "*"
+    port: 5432
+  valkey:
+    host: "*"
+    port: 6379
+  amazonmq:
+    host: "*"
+    ports:
+      amqp: 5672
+      amqps: 5671
+      management: 15672

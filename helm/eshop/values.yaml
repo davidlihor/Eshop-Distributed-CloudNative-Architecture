@@ -92,11 +92,11 @@ services:
     selector: catalog-api
     ports:
     - name: http
-      protocol: http  
+      appProtocol: http
       port: 80
       targetPort: 8080   
     - name: grpc
-      protocol: grpc 
+      appProtocol: grpc 
       port: 8081
       targetPort: 8081
 
@@ -112,12 +112,12 @@ services:
     selector: discount-grpc
     ports:
     - name: http
-      protocol: http
+      appProtocol: http
       port: 80
       targetPort: 8080
     - name: grpc
-      protocol: grpc 
-      port: 8080
+      appProtocol: grpc 
+      port: 8081
       targetPort: 8081
 
   - name: ordering-clusterip
@@ -282,6 +282,8 @@ apps:
       app: catalog-api
       proj: eshop
     replicaCount: 1
+    strategyType: canary
+    svc: catalog-clusterip
     sa: catalog-sa
     ports: 
       - port: 8080
@@ -315,14 +317,15 @@ apps:
       app: basket-api
       proj: eshop
     replicaCount: 1
-    sa: basket-sa
+    strategyType: blueGreen
     svc: basket-clusterip
+    sa: basket-sa
     ports:
       - port: 8080
     config:
       ASPNETCORE_ENVIRONMENT: Development
       GrpcSettings__CatalogUrl: http://catalog-clusterip:8081
-      GrpcSettings__DiscountUrl: http://discount-clusterip:8080
+      GrpcSettings__DiscountUrl: http://discount-clusterip:8081
       Authentication__Authority: http://keycloak-clusterip:8080/realms/eshop
       Authentication__ValidIssuer: "https://{{ .Values.security.istio.hosts.hostId }}/realms/eshop"
       Observability__OtlpEndpoint: http://alloy.monitoring.svc.cluster.local:4317
@@ -380,7 +383,7 @@ apps:
       - port: 8080
     config:
       ASPNETCORE_ENVIRONMENT: Development
-      GrpcSettings__CatalogUrl: http://catalog-clusterip:8080
+      GrpcSettings__CatalogUrl: http://catalog-clusterip:8081
       Authentication__Authority: http://keycloak-clusterip:8080/realms/eshop
       Authentication__ValidIssuer: "https://{{ .Values.security.istio.hosts.hostId }}/realms/eshop"
       Keycloak__BaseUrl: http://keycloak-clusterip:8080

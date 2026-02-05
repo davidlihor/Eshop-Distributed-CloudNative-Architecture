@@ -151,11 +151,12 @@ spec:
         - cluster.local/ns/{{ $.Values.global.namespace }}/sa/order-sa
     to:
     - operation:
-        ports: ["8080"]
+        ports: ["8081"]
   - from:
     - source:
         principals:
         - cluster.local/ns/{{ $.Values.global.namespace }}/sa/yarp-sa
+        - cluster.local/ns/istio-system/sa/eshop-gateway-istio
     to:
     - operation:
         ports: ["8080"]
@@ -175,6 +176,7 @@ spec:
     - source: 
         principals:
         - cluster.local/ns/{{ $.Values.global.namespace }}/sa/yarp-sa
+        - cluster.local/ns/istio-system/sa/eshop-gateway-istio
     to:
     - operation:
         ports: ["8080"] 
@@ -192,7 +194,8 @@ spec:
   rules:
   - from:
     - source:
-        namespaces: [{{ $.Values.global.namespace | quote }}]
+        principals:
+        - cluster.local/ns/{{ $.Values.global.namespace }}/sa/basket-sa
     to:
     - operation:
         ports: ["8081"]
@@ -200,6 +203,7 @@ spec:
     - source:
         principals:
         - cluster.local/ns/{{ $.Values.global.namespace }}/sa/yarp-sa
+        - cluster.local/ns/istio-system/sa/eshop-gateway-istio
     to:
     - operation:
         ports: ["8080"]
@@ -219,6 +223,7 @@ spec:
     - source:
         principals:
         - cluster.local/ns/{{ $.Values.global.namespace }}/sa/yarp-sa
+        - cluster.local/ns/istio-system/sa/eshop-gateway-istio
     to:
     - operation:
         ports: ["8080"]

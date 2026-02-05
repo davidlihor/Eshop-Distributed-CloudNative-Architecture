@@ -1,61 +1,49 @@
-apiVersion: gateway.networking.k8s.io/v1
-kind: GRPCRoute
-metadata:
-  name: catalog-api-grpc-route
-  namespace: {{ $.Values.global.namespace }}
-spec:
-  parentRefs:
-  - group: ""
-    kind: Service
-    name: catalog-clusterip
-    namespace: {{ $.Values.global.namespace }}
-  - group: gateway.networking.k8s.io
-    kind: Mesh
-    name: mesh
-    namespace: istio-system
-  rules:
-  - matches:
-    - headers:
-      - name: x-version
-        value: canary
-    backendRefs:
-    - name: catalog-clusterip-canary
-      port: 8081
-  - backendRefs:
-    - name: catalog-clusterip
-      port: 8081
-      weight: 100
-    - name: catalog-clusterip-canary
-      port: 8081
-      weight: 0
+{{- range .Values.services }}
+{{- $serviceName := .name }}
+{{- $grpcPort := 0 }}
+{{- range .ports }}
+  {{- if or (eq .name "grpc") (eq .appProtocol "grpc") }}
+    {{- $grpcPort = .port }}
+  {{- end }}
+{{- end }}
+
+{{- if $grpcPort }}
 ---
 apiVersion: gateway.networking.k8s.io/v1
 kind: GRPCRoute
 metadata:
-  name: discount-api-grpc-route
+  name: {{ $serviceName }}-grpc-route
   namespace: {{ $.Values.global.namespace }}
 spec:
   parentRefs:
   - group: ""
     kind: Service
-    name: discount-clusterip
+    name: {{ $serviceName }}
     namespace: {{ $.Values.global.namespace }}
   - group: gateway.networking.k8s.io
     kind: Mesh
     name: mesh
     namespace: istio-system
   rules:
+  {{- if eq (default "" .strategyType) "canary" }}
   - matches:
     - headers:
       - name: x-version
         value: canary
     backendRefs:
-    - name: discount-clusterip-canary
-      port: 8081
+    - name: {{ $serviceName }}-canary
+      port: {{ $grpcPort }}
   - backendRefs:
-    - name: discount-clusterip
-      port: 8081
+    - name: {{ $serviceName }}
+      port: {{ $grpcPort }}
       weight: 100
-    - name: discount-clusterip-canary
-      port: 8081
+    - name: {{ $serviceName }}-canary
+      port: {{ $grpcPort }}
       weight: 0
+  {{- else }}
+  - backendRefs:
+    - name: {{ $serviceName }}
+      port: {{ $grpcPort }}
+  {{- end }}
+{{- end }}
+{{- end }}

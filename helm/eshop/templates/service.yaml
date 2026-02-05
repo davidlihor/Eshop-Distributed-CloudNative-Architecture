@@ -16,9 +16,10 @@ spec:
     - name: {{ .name }}
       port: {{ .port }}
       targetPort: {{ .targetPort }}
-      {{- if .protocol }}
-      protocol: {{ .protocol }}
+      {{- if .appProtocol }}
+      appProtocol: {{ .appProtocol }}
       {{- end }}
+      protocol: {{ default "TCP" .protocol }}
     {{- end }}
 
 {{- if hasKey . "strategyType" }}
@@ -39,9 +40,10 @@ spec:
     - name: {{ .name }}
       port: {{ .port }}
       targetPort: {{ .targetPort }}
-      {{- if .protocol }}
-      protocol: {{ .protocol }}
+      {{- if .appProtocol }}
+      appProtocol: {{ .appProtocol }}
       {{- end }}
+      protocol: {{ default "TCP" .protocol }}
     {{- end }}
 {{- end }}
 {{- end }}
