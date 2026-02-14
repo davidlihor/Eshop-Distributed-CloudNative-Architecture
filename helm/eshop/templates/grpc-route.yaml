@@ -29,21 +29,32 @@ spec:
   - matches:
     - headers:
       - name: x-version
+        type: Exact
         value: canary
     backendRefs:
     - name: {{ $serviceName }}-canary
       port: {{ $grpcPort }}
+      weight: 100
+      group: ''
+      kind: Service
   - backendRefs:
     - name: {{ $serviceName }}
       port: {{ $grpcPort }}
       weight: 100
+      group: ''
+      kind: Service
     - name: {{ $serviceName }}-canary
       port: {{ $grpcPort }}
       weight: 0
+      group: ''
+      kind: Service
   {{- else }}
   - backendRefs:
     - name: {{ $serviceName }}
       port: {{ $grpcPort }}
+      group: ''
+      kind: Service
+      weight: 100
   {{- end }}
 {{- end }}
 {{- end }}

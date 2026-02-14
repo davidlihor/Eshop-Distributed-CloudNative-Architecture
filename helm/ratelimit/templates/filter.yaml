@@ -4,9 +4,10 @@ metadata:
   name: filter-ratelimit
   namespace: istio-system
 spec:
-  workloadSelector:
-    labels:
-      istio: ingressgateway
+  targetRefs:
+  - group: gateway.networking.k8s.io
+    kind: Gateway
+    name: eshop-gateway
   configPatches:
     - applyTo: HTTP_FILTER
       match:
@@ -30,7 +31,7 @@ spec:
               grpc_service:
                 envoy_grpc:
                   cluster_name: rate_limit_cluster
-                  authority: ratelimit.default.svc.cluster.local
+                  authority: ratelimit.ratelimit-system.svc.cluster.local
                 timeout: 0.25s
               transport_api_version: V3
     - applyTo: CLUSTER
@@ -60,16 +61,17 @@ metadata:
   name: ratelimit-routes
   namespace: istio-system
 spec:
-  workloadSelector:
-    labels:
-      istio: ingressgateway
+  targetRefs:
+  - group: gateway.networking.k8s.io
+    kind: Gateway
+    name: eshop-gateway
   configPatches:
   - applyTo: HTTP_ROUTE
     match:
       context: GATEWAY
       routeConfiguration:
         vhost:
-          name: {{ .Values.security.istio.hosts.hostApi | quote }}:443
+          name: {{ printf "%s:443" .Values.hosts.hostApi | quote }}
     patch:
       operation: MERGE
       value:
@@ -90,7 +92,7 @@ spec:
       context: GATEWAY
       routeConfiguration:
         vhost:
-          name: {{ .Values.security.istio.hosts.hostApp | quote }}:443
+          name: {{ printf "%s:443" .Values.hosts.hostApp | quote }}
     patch:
       operation: MERGE
       value:
@@ -111,7 +113,7 @@ spec:
       context: GATEWAY
       routeConfiguration:
         vhost:
-          name: {{ .Values.security.istio.hosts.hostId | quote }}:443
+          name: {{ printf "%s:443" .Values.hosts.hostId | quote }}
     patch:
       operation: MERGE
       value:

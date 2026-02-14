@@ -35,6 +35,8 @@ metadata:
 spec:
   parentRefs:
   - name: eshop-gateway
+    group: gateway.networking.k8s.io	
+    kind: Gateway
     namespace: istio-system
   hostnames:
   - {{ $host | quote }}
@@ -72,9 +74,13 @@ spec:
     - name: {{ $serviceName }}
       port: {{ $httpPort }}
       weight: 100
+      group: ''
+      kind: Service
     - name: {{ $serviceName }}-canary
       port: {{ $httpPort }}
       weight: 0
+      group: ''
+      kind: Service
       filters:
       - type: RequestHeaderModifier
         requestHeaderModifier:
@@ -85,6 +91,8 @@ spec:
     - name: {{ $serviceName }}
       port: {{ $httpPort }}
       weight: 100
+      group: ''
+      kind: Service
     {{- end }}
 {{- end }}
 {{- end }}

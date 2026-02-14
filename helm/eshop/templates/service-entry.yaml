@@ -1,5 +1,4 @@
 {{- if .Values.security.istio.enabled }}
----
 apiVersion: networking.istio.io/v1
 kind: ServiceEntry
 metadata:
@@ -10,8 +9,8 @@ spec:
   - {{ .Values.aws.rds.host | quote }}
   ports:
   - number: {{ .Values.aws.rds.port }}
-    name: postgres
-    protocol: TLS
+    name: tcp-postgresql
+    protocol: TCP
   location: MESH_EXTERNAL
   resolution: DNS
 ---
@@ -25,8 +24,8 @@ spec:
   - {{ .Values.aws.valkey.host | quote }}
   ports:
   - number: {{ .Values.aws.valkey.port }}
-    name: redis
-    protocol: TLS
+    name: tcp-redis
+    protocol: TCP
   location: MESH_EXTERNAL
   resolution: DNS
 ---
@@ -40,35 +39,86 @@ spec:
   - {{ .Values.aws.amazonmq.host | quote }}
   ports:
   - number: {{ .Values.aws.amazonmq.ports.amqps }}
-    name: amqps
-    protocol: TLS
+    name: tcp-mq
+    protocol: TCP
   - number: {{ .Values.aws.amazonmq.ports.amqp }}
-    name: amqp
-    protocol: TLS
-  - number: {{ .Values.aws.amazonmq.ports.management }}
-    name: rabbitmq-mgmt
-    protocol: TLS
+    name: tcp-mq-plain
+    protocol: TCP
+  location: MESH_EXTERNAL
+  resolution: DNS
+---
+apiVersion: networking.istio.io/v1
+kind: ServiceEntry
+metadata:
+  name: aws-metadata
+  namespace: {{ $.Values.global.namespace }}
+spec:
+  hosts:
+  - metadata.aws
+  addresses:
+  - 169.254.169.254/32
+  ports:
+  - number: 80
+    name: http
+    protocol: HTTP
+  location: MESH_EXTERNAL
+  resolution: NONE
+---
+apiVersion: networking.istio.io/v1
+kind: ServiceEntry
+metadata:
+  name: aws-container-credentials
+  namespace: {{ $.Values.global.namespace }}
+spec:
+  hosts:
+  - container.credentials.aws
+  addresses:
+  - 169.254.170.2/32
+  - 169.254.170.23/32
+  ports:
+  - number: 80
+    name: http
+    protocol: HTTP
+  location: MESH_EXTERNAL
+  resolution: NONE
+---
+apiVersion: networking.istio.io/v1
+kind: ServiceEntry
+metadata:
+  name: aws-dynamodb
+  namespace: {{ $.Values.global.namespace }}
+spec:
+  hosts:
+  - dynamodb.{{ .Values.aws.region }}.amazonaws.com
+  ports:
+  - number: 443
+    name: https
+    protocol: TCP
+  location: MESH_EXTERNAL
+  resolution: DNS
+---
+apiVersion: networking.istio.io/v1
+kind: ServiceEntry
+metadata:
+  name: aws-sts
+  namespace: {{ $.Values.global.namespace }}
+spec:
+  hosts:
+  - sts.{{ .Values.aws.region }}.amazonaws.com
+  ports:
+  - number: 443
+    name: https
+    protocol: TCP
   location: MESH_EXTERNAL
   resolution: DNS
 ---
 apiVersion: networking.istio.io/v1
 kind: DestinationRule
 metadata:
-  name: aws-rds-postgres-tls
+  name: aws-dynamodb-dr
   namespace: {{ $.Values.global.namespace }}
 spec:
-  host: "*.rds.amazonaws.com"
-  trafficPolicy:
-    tls:
-      mode: SIMPLE
----
-apiVersion: networking.istio.io/v1
-kind: DestinationRule
-metadata:
-  name: aws-valkey-tls
-  namespace: {{ $.Values.global.namespace }}
-spec:
-  host: "*.cache.amazonaws.com"
+  host: dynamodb.{{ .Values.aws.region }}.amazonaws.com
   trafficPolicy:
     tls:
       mode: DISABLE
@@ -76,10 +126,43 @@ spec:
 apiVersion: networking.istio.io/v1
 kind: DestinationRule
 metadata:
-  name: aws-amazonmq-tls
+  name: aws-sts-dr
   namespace: {{ $.Values.global.namespace }}
 spec:
-  host: "*.mq.{{ .Values.aws.region }}.on.aws"
+  host: sts.{{ .Values.aws.region }}.amazonaws.com
+  trafficPolicy:
+    tls:
+      mode: DISABLE
+---
+apiVersion: networking.istio.io/v1
+kind: DestinationRule
+metadata:
+  name: aws-rds-postgres-dr
+  namespace: {{ $.Values.global.namespace }}
+spec:
+  host: {{ .Values.aws.rds.host | quote }}
+  trafficPolicy:
+    tls:
+      mode: DISABLE
+---
+apiVersion: networking.istio.io/v1
+kind: DestinationRule
+metadata:
+  name: aws-valkey-dr
+  namespace: {{ $.Values.global.namespace }}
+spec:
+  host: {{ .Values.aws.valkey.host | quote }}
+  trafficPolicy:
+    tls:
+      mode: DISABLE
+---
+apiVersion: networking.istio.io/v1
+kind: DestinationRule
+metadata:
+  name: aws-amazonmq-dr
+  namespace: {{ $.Values.global.namespace }}
+spec:
+  host: {{ .Values.aws.amazonmq.host | quote }}
   trafficPolicy:
     tls:
       mode: DISABLE

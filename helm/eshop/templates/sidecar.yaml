@@ -1,0 +1,118 @@
+{{- if .Values.security.istio.enabled }}
+apiVersion: networking.istio.io/v1
+kind: Sidecar
+metadata:
+  name: catalog-sidecar
+  namespace: {{ .Values.global.namespace }}
+spec:
+  workloadSelector:
+    labels:
+      app: catalog-api
+  egress:
+  - hosts:
+    - "istio-system/*"
+    - "monitoring/*" 
+    - "./*"
+    - "*/{{ .Values.aws.rds.host }}"
+    - "*/{{ .Values.aws.amazonmq.host }}"
+---
+apiVersion: networking.istio.io/v1
+kind: Sidecar
+metadata:
+  name: basket-sidecar
+  namespace: {{ .Values.global.namespace }}
+spec:
+  workloadSelector:
+    labels:
+      app: basket-api
+  egress:
+  - hosts:
+    - "istio-system/*"
+    - "monitoring/*" 
+    - "./*"
+    - "*/{{ .Values.aws.rds.host }}"
+    - "*/{{ .Values.aws.amazonmq.host }}"
+    - "*/{{ .Values.aws.valkey.host }}"
+---
+apiVersion: networking.istio.io/v1
+kind: Sidecar
+metadata:
+  name: discount-sidecar
+  namespace: {{ .Values.global.namespace }}
+spec:
+  workloadSelector:
+    labels:
+      app: discount-grpc
+  egress:
+  - hosts:
+    - "istio-system/*"
+    - "monitoring/*" 
+    - "./*"
+    - "*/dynamodb.{{ .Values.aws.region }}.amazonaws.com"
+    - "*/sts.{{ .Values.aws.region }}.amazonaws.com"
+    - "*/metadata.aws"
+    - "*/container.credentials.aws"
+---
+apiVersion: networking.istio.io/v1
+kind: Sidecar
+metadata:
+  name: ordering-sidecar
+  namespace: {{ .Values.global.namespace }}
+spec:
+  workloadSelector:
+    labels:
+      app: ordering-api
+  egress:
+  - hosts:
+    - "istio-system/*"
+    - "monitoring/*" 
+    - "./*"
+    - "*/{{ .Values.aws.rds.host }}"
+    - "*/{{ .Values.aws.amazonmq.host }}"
+    - "*/{{ .Values.aws.valkey.host }}"
+---
+apiVersion: networking.istio.io/v1
+kind: Sidecar
+metadata:
+  name: keycloak-sidecar
+  namespace: {{ .Values.global.namespace }}
+spec:
+  workloadSelector:
+    labels:
+      app: keycloak-svc
+  egress:
+  - hosts:
+    - "istio-system/*"
+    - "./*"
+    - "*/{{ .Values.aws.rds.host }}"
+    - "*/{{ .Values.aws.amazonmq.host }}"
+---
+apiVersion: networking.istio.io/v1
+kind: Sidecar
+metadata:
+  name: yarp-sidecar
+  namespace: {{ .Values.global.namespace }}
+spec:
+  workloadSelector:
+    labels:
+      app: yarp-api-gateway
+  egress:
+  - hosts:
+    - "istio-system/*"
+    - "monitoring/*"
+    - "./*"
+---
+apiVersion: networking.istio.io/v1
+kind: Sidecar
+metadata:
+  name: web-client-sidecar
+  namespace: {{ .Values.global.namespace }}
+spec:
+  workloadSelector:
+    labels:
+      app: web-client
+  egress:
+  - hosts:
+    - "istio-system/*"
+    - "./*"
+{{- end }}
