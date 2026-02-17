@@ -1,13 +1,12 @@
 using BuildingBlocks.OpenTelemetry;
 using BuildingBlocks.Security;
-using Discount.Grpc.Data;
+using Discount.Grpc.Data.DynamoDb;
 using Discount.Grpc.Mappings;
 using Discount.Grpc.Services;
 using FluentValidation;
 using HealthChecks.UI.Client;
 using Mapster;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
-using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -21,10 +20,7 @@ TypeAdapterConfig.GlobalSettings.Scan(typeof(MappingRegister).Assembly);
 builder.Services.AddJwtAuthentication(builder.Configuration);
 builder.Services.AddAuthorizationWithRoles();
 
-builder.Services.AddDbContext<DiscountContext>(options =>
-{
-    options.UseSqlite(builder.Configuration.GetConnectionString("Database"));
-});
+builder.Services.AddDiscountDynamoDb(builder.Configuration);
 
 builder.Services.AddGrpc()
     .AddJsonTranscoding();
@@ -39,7 +35,6 @@ var app = builder.Build();
 
 app.UseAuthentication();
 app.UseAuthorization();
-app.UseMigration();
 app.MapGrpcService<DiscountService>();
 app.UseHealthChecks("/health", new HealthCheckOptions
 {

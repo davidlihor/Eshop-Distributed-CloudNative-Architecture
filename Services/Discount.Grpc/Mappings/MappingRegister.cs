@@ -9,6 +9,10 @@ public class MappingRegister : IRegister
     public void Register(TypeAdapterConfig config)
     {
         config.Default.NameMatchingStrategy(NameMatchingStrategy.Flexible).IgnoreNullValues(true);
+
+        config.NewConfig<Coupon, CouponModel>()
+            .Map(dest => dest.ProductId, src => src.ProductId.ToString());
+
         config.NewConfig<CouponModel, Coupon>()
             .ConstructUsing(src => new Coupon
             {

@@ -27,22 +27,33 @@ services:
 
   basketdb:
     environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=${BASKET_DB_PASSWORD}
-      - POSTGRES_DB=BasketDb
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${BASKET_DB_PASSWORD}
+      POSTGRES_DB: BasketDb
     ports:
       - 5401:5432
     volumes:
       - postgres_basket:/var/lib/postgresql/data
 
+  discountdb:
+    image: amazon/dynamodb-local:latest
+    container_name: Discount_DB
+    ports:
+      - "8000:8000"
+    volumes:
+      - dynamodb_discount:/home/dynamodblocal
+    working_dir: /home/dynamodblocal
+    command: "-jar DynamoDBLocal.jar -sharedDb -dbPath ."
+
   orderdb:
     environment:
-      - ACCEPT_EULA=Y
-      - SA_PASSWORD=${ORDER_DB_PASSWORD}
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${ORDER_DB_PASSWORD}
+      POSTGRES_DB: OrderDb
     ports:
-      - 1433:1433
+      - 5402:5432
     volumes:
-      - sqlserver_order:/var/opt/mssql
+      - postgres_order:/var/lib/postgresql/data
 
   keycloak-db:
     environment:
@@ -50,7 +61,7 @@ services:
       POSTGRES_PASSWORD: ${KEYCLOAK_DB_PASSWORD}
       POSTGRES_DB: keycloak
     ports:
-      - 5402:5432
+      - 5403:5432
     volumes:
      - postgres_keycloak:/var/lib/postgresql/data
   
@@ -66,17 +77,7 @@ services:
     ports:
       - 5672:5672
       - 15672:15672
-  
-  discount.seq:
-    environment:
-      - ACCEPT_EULA=Y
-      - SEQ_FIRSTRUN_ADMINPASSWORD=admin
-    ports:
-      - 5341:5341
-      - 90:80
-    volumes:
-      - seq-data:/data
-  
+
   keycloak.identity:
     environment:
       KC_DB: postgres
@@ -84,8 +85,8 @@ services:
       KC_DB_URL_PORT: 5432
       KC_DB_USERNAME: postgres
       KC_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD}
-      KC_BOOTSTRAP_ADMIN_USERNAME: admin
-      KC_BOOTSTRAP_ADMIN_PASSWORD: admin
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KC_ADMIN_USERNAME}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KC_ADMIN_PASSWORD}
       KK_TO_RMQ_URL: messagebroker
       KK_TO_RMQ_PORT: 5672
       KK_TO_RMQ_VHOST: /
@@ -153,12 +154,12 @@ services:
     environment:
       <<: [ *dotnet-common-env, *auth-common-env ]
       ASPNETCORE_ENVIRONMENT: Development
-      ConnectionStrings__Database: Data Source=discountdb.db
-      OTEL_EXPORTER_OTLP_ENDPOINT: HTTP://discount.seq:5341/ingest/otlp/v1/traces
-      OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
-      Seq__ServerUrl: http://discount.seq:5341
+      DynamoDb__Region: us-east-1
+      DynamoDb__TableName: Coupons
+      DynamoDb__CountersTableName: Counters
+      DynamoDb__Seed: "false"
     depends_on:
-      - discount.seq
+      - discountdb
       - keycloak.identity
     ports:
       - 6002:8080
@@ -169,7 +170,7 @@ services:
     environment:
       <<: [ *dotnet-common-env, *auth-common-env ]
       ASPNETCORE_ENVIRONMENT: Development
-      ConnectionStrings__Database: Server=orderdb,1433;Database=OrderDb;User Id=sa;Password=${ORDER_DB_PASSWORD};Encrypt=False;Trust Server Certificate=True
+      ConnectionStrings__Database: Server=orderdb;Port=5432;Database=OrderDb;User Id=postgres;Password=${ORDER_DB_PASSWORD};Include Error Detail=true
       ConnectionStrings__Redis: distributedcache:6379
       MessageBroker__Host: amqp://messagebroker:5672
       MessageBroker__UserName: ${RABBITMQ_USER}

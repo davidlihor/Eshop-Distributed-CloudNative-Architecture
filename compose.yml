@@ -7,9 +7,13 @@ services:
     container_name: Basket_DB
     image: postgres
 
+  discountdb:
+    container_name: Discount_DB
+    image: amazon/dynamodb-local
+
   orderdb:
     container_name: Order_DB
-    image: mcr.microsoft.com/mssql/server:2022-latest
+    image: postgres
 
   keycloak-db:
     container_name: KeyCloak_DB
@@ -22,10 +26,6 @@ services:
   messagebroker:
     container_name: Rabbit_MQ
     image: rabbitmq:management
-
-  discount.seq:
-    container_name: Discount_Seq
-    image: datalust/seq:latest
     
   keycloak.identity:
     container_name: Keycloak
@@ -76,6 +76,6 @@ services:
 volumes:
   postgres_catalog:
   postgres_basket:
-  sqlserver_order:
+  dynamodb_discount:
+  postgres_order:
   postgres_keycloak:
-  seq-data:

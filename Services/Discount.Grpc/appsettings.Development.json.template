@@ -5,8 +5,14 @@
       "Microsoft.AspNetCore": "Warning"
     }
   },
-  "ConnectionStrings": {
-    "Database": "Data Source=discountdb.db"
+  "DynamoDb": {
+    "ServiceUrl": "http://localhost:8000",
+    "Region": "us-east-1",
+    "TableName": "Coupons",
+    "CountersTableName": "Counters",
+    "Seed": true,
+    "AccessKeyId": "DYNAMODB",
+    "SecretAccessKey": "DYNAMODB"
   },
   "Authentication": {
     "Authority": "http://localhost:8080/realms/eshop",
