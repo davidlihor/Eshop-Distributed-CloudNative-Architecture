@@ -1,0 +1,48 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: ratelimit-environments
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "4"
+spec:
+  generators:
+    - list:
+        elements:
+          - env: dev
+            namespace: ratelimit-system-dev
+            vFile: values-dev.yaml
+          # - env: stage
+          #   namespace: ratelimit-stage
+          #   vFile: values-stage.yaml
+          # - env: prod
+          #   namespace: ratelimit-prod
+          #   vFile: values-prod.yaml
+  template:
+    metadata:
+      name: ratelimit-system-{{env}}
+    spec:
+      project: eshop-project
+      source:
+        repoURL: https://github.com/davidlihor/Eshop-Distributed-CloudNative-Architecture.git
+        targetRevision: HEAD
+        path: helm/ratelimit
+        helm:
+          valueFiles:
+            - values.yaml
+            - "{{vFile}}"
+          parameters:
+            - name: "global.namespace"
+              value: "{{namespace}}"
+            - name: "global.environment"
+              value: "{{env}}"
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: "{{namespace}}"
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true
+          - ServerSideApply=true

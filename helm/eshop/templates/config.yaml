@@ -8,7 +8,8 @@ metadata:
   namespace: {{ $.Values.global.namespace }}
 data:
   {{- range $key, $value := .config }}
-  {{ $key }}: {{ tpl (toString $value) $ | quote }}
+{{- $firstPass := tpl (toString $value) $ }}
+  {{ $key }}: {{ tpl $firstPass $ | quote }}
   {{- end }}
 {{- end }}
 {{- end }}
@@ -124,16 +125,10 @@ data:
             "protocol": "openid-connect",
             "publicClient": true,
             "redirectUris": [
-              "https://app.eshop.local/*",
-              "https://app.eshop.dev/*",
-              "https://app.eshop.stage/*",
-              "https://app.eshop.prod/*"
+              "https://{{ tpl .Values.security.istio.hosts.hostApp $ }}/*"
             ],
             "webOrigins": [
-              "https://app.eshop.local",
-              "https://app.eshop.dev",
-              "https://app.eshop.stage",
-              "https://app.eshop.prod"
+              "https://{{ tpl .Values.security.istio.hosts.hostApp $ }}"
             ],
             "attributes": {
               "pkce.code.challenge.method": "S256"
@@ -157,7 +152,7 @@ data:
             "protocol": "openid-connect",
             "publicClient": false,
             "clientAuthenticatorType": "client-secret",
-            "secret": "REPLACE_ME",
+            "secret": "CHANGE_ME",
             "standardFlowEnabled": false,
             "implicitFlowEnabled": false,
             "directAccessGrantsEnabled": false,
@@ -180,23 +175,79 @@ data:
                 }
               }
             ]
-          }
-        ],
-        "users": [
+          },
           {
-            "username": "testuser",
-            "enabled": true,
-            "emailVerified": true,
-            "firstName": "Test",
-            "lastName": "User",
-            "email": "testuser@email.com",
-            "credentials": [
+            "clientId": "kiali",
+            "protocol": "openid-connect",
+            "publicClient": true,
+            "standardFlowEnabled": true,
+            "directAccessGrantsEnabled": false,
+            "redirectUris": [
+              "https://{{ tpl .Values.security.istio.hosts.hostKiali $ }}/*"
+            ],
+            "webOrigins": [
+              "https://{{ tpl .Values.security.istio.hosts.hostKiali $ }}"
+            ],
+            "attributes": {
+              "pkce.code.challenge.method": "S256"
+            },
+            "protocolMappers": [
               {
-                "type": "password",
-                "value": "testpass",
-                "temporary": false
+                "name": "audience mapper",
+                "protocol": "openid-connect",
+                "protocolMapper": "oidc-audience-mapper",
+                "consentRequired": false,
+                "config": {
+                  "included.client.audience": "kiali",
+                  "id.token.claim": "true",
+                  "access.token.claim": "true"
+                }
+              },
+              {
+                "name": "realm roles to groups",
+                "protocol": "openid-connect",
+                "protocolMapper": "oidc-usermodel-realm-role-mapper",
+                "consentRequired": false,
+                "config": {
+                  "multivalued": "true",
+                  "user.attribute": "foo",
+                  "id.token.claim": "true",
+                  "access.token.claim": "true",
+                  "claim.name": "groups",
+                  "jsonType.label": "String"
+                }
               }
             ]
+          }
+        ],
+        "roles": {
+          "realm": [
+            { "name": "Admin" },
+            { "name": "Employee" },
+            { "name": "Customer" }
+          ]
+        },
+        "defaultRoles": [ "Customer" ],
+        "users": [
+          {
+            "username": "admin",
+            "enabled": true,
+            "emailVerified": true,
+            "email": "admin@eshop.com",
+            "firstName": "Demo",
+            "lastName": "Admin",
+            "credentials": [{ "type": "password", "value": "admin123", "temporary": false }],
+            "realmRoles": [ "Admin", "Customer" ]
+          },
+          {
+            "username": "user",
+            "enabled": true,
+            "emailVerified": true,
+            "email": "user@eshop.com",
+            "firstName": "Demo",
+            "lastName": "User",
+            "credentials": [{ "type": "password", "value": "user123", "temporary": false }],
+            "realmRoles": [ "Customer" ]
           },
           {
             "username": "service-account-ordering-service",

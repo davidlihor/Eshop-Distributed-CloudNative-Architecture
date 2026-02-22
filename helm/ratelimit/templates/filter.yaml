@@ -31,7 +31,7 @@ spec:
               grpc_service:
                 envoy_grpc:
                   cluster_name: rate_limit_cluster
-                  authority: ratelimit.ratelimit-system.svc.cluster.local
+                  authority: ratelimit.{{ .Values.global.namespace }}.svc.cluster.local
                 timeout: 0.25s
               transport_api_version: V3
     - applyTo: CLUSTER
@@ -52,7 +52,7 @@ spec:
               - endpoint:
                   address:
                     socket_address:
-                      address: ratelimit.ratelimit-system.svc.cluster.local
+                      address: ratelimit.{{ .Values.global.namespace }}.svc.cluster.local
                       port_value: 8081
 ---
 apiVersion: networking.istio.io/v1alpha3
@@ -71,7 +71,7 @@ spec:
       context: GATEWAY
       routeConfiguration:
         vhost:
-          name: {{ printf "%s:443" .Values.hosts.hostApi | quote }}
+          name: {{ printf "%s:443" (tpl .Values.hosts.hostApi .) | quote }}
     patch:
       operation: MERGE
       value:
@@ -92,7 +92,7 @@ spec:
       context: GATEWAY
       routeConfiguration:
         vhost:
-          name: {{ printf "%s:443" .Values.hosts.hostApp | quote }}
+          name: {{ printf "%s:443" (tpl .Values.hosts.hostApp .) | quote }}
     patch:
       operation: MERGE
       value:
@@ -113,7 +113,7 @@ spec:
       context: GATEWAY
       routeConfiguration:
         vhost:
-          name: {{ printf "%s:443" .Values.hosts.hostId | quote }}
+          name: {{ printf "%s:443" (tpl .Values.hosts.hostId .) | quote }}
     patch:
       operation: MERGE
       value:

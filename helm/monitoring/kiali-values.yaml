@@ -1,0 +1,59 @@
+server:
+  web_fqdn: "kiali.eshop.davidlihor.com"
+  web_schema: "https"
+  web_port: 443
+  web_root: "/"
+
+deployment:
+  accessible_namespaces: ["**"]
+  view_only_mode: false
+  pod_labels:
+    sidecar.istio.io/inject: "true"
+  pod_annotations:
+    proxy.istio.io/config: '{ "holdApplicationUntilProxyStarts": true }'
+
+login_token:
+  signing_key: "kialisingingkey1"
+
+external_services:
+  prometheus:
+    url: "http://mimir-distributed-query-frontend.monitoring.svc.cluster.local:8080/prometheus"
+    health_check_url: "http://mimir-distributed-query-frontend.monitoring.svc.cluster.local:8080/-/healthy"
+    is_core: false
+    custom_headers:
+      X-Scope-OrgID: anonymous
+  grafana:
+    enabled: true
+    internal_url: "http://grafana.monitoring.svc.cluster.local:80"
+    external_url: "http://grafana.eshop.davidlihor.com"
+  tracing:
+    enabled: true
+    provider: "tempo"
+    internal_url: "http://tempo-distributed-query-frontend.monitoring.svc.cluster.local:3200"
+    use_grpc: false
+    grpc_port: 9095
+  loki:
+    enabled: true
+    url: "http://loki-gateway.monitoring.svc.cluster.local"
+
+auth:
+  strategy: "openid"
+  openid:
+    client_id: "kiali"
+    issuer_uri: "https://id.dev.eshop.davidlihor.com/realms/eshop"
+    scopes: ["openid", "profile", "email", "roles"]
+    disable_rbac: true
+    username_claim: "email"
+    groups_claim: "realm_access.roles"
+    allowed_groups:
+      - "Admin"
+    disable_verify_certificate: true
+    insecure_skip_verify_tls: true
+    authentication_timeout: 300
+    additional_request_params:
+      prompt: "login"
+    discovery_override:
+      authorization_endpoint: "https://id.dev.eshop.davidlihor.com/realms/eshop/protocol/openid-connect/auth"
+      token_endpoint: "http://keycloak-clusterip.eshop-dev.svc.cluster.local:8080/realms/eshop/protocol/openid-connect/token"
+      userinfo_endpoint: "http://keycloak-clusterip.eshop-dev.svc.cluster.local:8080/realms/eshop/protocol/openid-connect/userinfo"
+      jwks_uri: "http://keycloak-clusterip.eshop-dev.svc.cluster.local:8080/realms/eshop/protocol/openid-connect/certs"

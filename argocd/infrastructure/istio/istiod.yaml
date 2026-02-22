@@ -24,6 +24,11 @@ spec:
     chart: istiod
     repoURL: https://istio-release.storage.googleapis.com/charts
     targetRevision: 1.28.0
+    helm:
+      values: |
+        meshConfig:
+          outboundTrafficPolicy:
+            mode: REGISTRY_ONLY
   destination:
     server: https://kubernetes.default.svc
     namespace: istio-system

@@ -17,7 +17,7 @@ spec:
     tls:
       mode: Terminate
       certificateRefs:
-      - name: {{ .Values.security.istio.tlsSecret }}
+      - name: {{ tpl (toString .Values.security.istio.tlsSecret) $ | quote }}
     allowedRoutes:
       namespaces:
         from: All

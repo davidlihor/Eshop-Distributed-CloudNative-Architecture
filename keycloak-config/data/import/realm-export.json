@@ -69,21 +69,34 @@
         ]
       }
     ],
+    "roles": {
+      "realm": [
+        { "name": "Admin" },
+        { "name": "Employee" },
+        { "name": "Customer" }
+      ]
+    },
+    "defaultRoles": [ "Customer" ],
     "users": [
       {
-        "username": "testuser",
+        "username": "admin",
         "enabled": true,
         "emailVerified": true,
-        "firstName": "Test",
+        "email": "admin@eshop.com",
+        "firstName": "Demo",
+        "lastName": "Admin",
+        "credentials": [{ "type": "password", "value": "admin123", "temporary": false }],
+        "realmRoles": [ "Admin", "Customer" ]
+      },
+      {
+        "username": "user",
+        "enabled": true,
+        "emailVerified": true,
+        "email": "user@eshop.com",
+        "firstName": "Demo",
         "lastName": "User",
-        "email": "testuser@email.com",
-        "credentials": [
-          {
-            "type": "password",
-            "value": "testpass",
-            "temporary": false
-          }
-        ]
+        "credentials": [{ "type": "password", "value": "user123", "temporary": false }],
+        "realmRoles": [ "Customer" ]
       },
       {
         "username": "service-account-ordering-service",

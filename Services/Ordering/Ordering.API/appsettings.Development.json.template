@@ -1,0 +1,36 @@
+{
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning"
+    }
+  },
+  "ConnectionStrings": {
+    "Database": "Server=localhost;Port=5402;Database=OrderDb;User Id=postgres;Password=${ORDER_DB_PASSWORD};Include Error Detail=true",
+    "Redis": "localhost:6379"
+  },
+  "MessageBroker": {
+    "Host": "amqp://localhost:5672",
+    "UserName": "${RABBITMQ_USER}",
+    "Password": "${RABBITMQ_PASS}"
+  },
+  "Authentication": {
+    "Authority": "http://localhost:8080/realms/eshop",
+    "ValidIssuer": "http://localhost:8080/realms/eshop",
+    "ClientId": "eshop-client",
+    "Audience": "eshop-client"
+  },
+  "GrpcSettings": {
+    "CatalogUrl": "https://localhost:6060"
+  },
+  "Keycloak": {
+    "BaseUrl": "http://localhost:8080",
+    "Realm": "eshop",
+    "ClientId": "ordering-service",
+    "ClientSecret": "${KEYCLOAK_SECRET}",
+    "GrantType": "client_credentials"
+  },
+  "FeatureManagement": {
+    "OrderFulfillment": false
+  }
+}

@@ -154,10 +154,13 @@ services:
     environment:
       <<: [ *dotnet-common-env, *auth-common-env ]
       ASPNETCORE_ENVIRONMENT: Development
+      DynamoDb__ServiceUrl: http://discountdb:8000
       DynamoDb__Region: us-east-1
       DynamoDb__TableName: Coupons
       DynamoDb__CountersTableName: Counters
-      DynamoDb__Seed: "false"
+      DynamoDb__AccessKeyId: DYNAMODB
+      DynamoDb__SecretAccessKey: DYNAMODB
+      DynamoDb__Seed: "true"
     depends_on:
       - discountdb
       - keycloak.identity

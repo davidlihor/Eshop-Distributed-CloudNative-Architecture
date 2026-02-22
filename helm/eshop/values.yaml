@@ -8,6 +8,8 @@ global:
   imagePullPolicy: IfNotPresent
   revisionHistoryLimit: 5
   terminationGracePeriodSeconds: 20
+  monitoring: false
+  domain: example.com
 defaultResources:
   limits:
     cpu: "500m"
@@ -30,15 +32,22 @@ aws:
       amqps: 5671
       management: 15672
 security:
+  issuer:
+    name: "letsencrypt-{{ .Values.global.environment }}"
+    email: email@example.com
+    server: https://acme-v02.api.letsencrypt.org/directory
   istio:
     enabled: true
     mtlsMode: STRICT
-    tlsSecret: eshop-tls
+    namespace: istio-system
+    tlsSecret: "{{ .Values.global.projectName }}-tls-{{ .Values.global.environment }}"
     hosts:
-      hostApp: app.eshop.local
-      hostApi: api.eshop.local
-      hostId: id.eshop.local
-
+      hostApp: "{{ .Values.global.environment }}.{{ .Values.global.projectName }}.{{ .Values.global.domain }}"
+      hostApi: "api.{{ .Values.global.environment }}.{{ .Values.global.projectName }}.{{ .Values.global.domain }}"
+      hostId: "id.{{ .Values.global.environment }}.{{ .Values.global.projectName }}.{{ .Values.global.domain }}"
+      hostGrafana: "grafana.{{ .Values.global.projectName }}.{{ .Values.global.domain }}"
+      hostArgoCD: "argocd.{{ .Values.global.projectName }}.{{ .Values.global.domain }}"
+      hostKiali: "kiali.{{ .Values.global.projectName }}.{{ .Values.global.domain }}"
 services:
   - name: catalogdb-svc
     selector: catalog-db

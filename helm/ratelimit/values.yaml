@@ -1,4 +1,10 @@
+global:
+  namespace: ratelimit-system
+  environment: dev
+  ns: true
+  domain: example.com
+  projectName: eshop
 hosts:
-  hostApp: app.eshop.local
-  hostApi: api.eshop.local
-  hostId: id.eshop.local
+  hostApp: "{{ .Values.global.environment }}.{{ .Values.global.projectName }}.{{ .Values.global.domain }}"
+  hostApi: "api.{{ .Values.global.environment }}.{{ .Values.global.projectName }}.{{ .Values.global.domain }}"
+  hostId: "id.{{ .Values.global.environment }}.{{ .Values.global.projectName }}.{{ .Values.global.domain }}"

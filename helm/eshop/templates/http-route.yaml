@@ -39,7 +39,7 @@ spec:
     kind: Gateway
     namespace: istio-system
   hostnames:
-  - {{ $host | quote }}
+  - {{ tpl (toString $host) $ | quote }}
   rules:
   - matches:
     - path: 
@@ -55,7 +55,7 @@ spec:
     - type: CORS
       cors:
         allowOrigins:
-        - "https://{{ $.Values.security.istio.hosts.hostApp }}"
+        - "https://{{ tpl $.Values.security.istio.hosts.hostApp $ }}"
         allowMethods:
         - GET
         - POST
@@ -97,3 +97,75 @@ spec:
 {{- end }}
 {{- end }}
 {{- end }}
+---
+{{- if $.Values.global.monitoring }}
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: grafana-route
+  namespace: monitoring
+spec:
+  parentRefs:
+  - name: eshop-gateway
+    group: gateway.networking.k8s.io
+    kind: Gateway
+    namespace: istio-system
+  hostnames:
+  - {{ tpl (toString $.Values.security.istio.hosts.hostGrafana) $ | quote }}
+  rules:
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /
+    backendRefs:
+    - name: grafana
+      port: 80
+{{- end }}
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: argocd-route
+  namespace: argocd
+spec:
+  parentRefs:
+  - name: eshop-gateway
+    group: gateway.networking.k8s.io
+    kind: Gateway
+    namespace: istio-system
+  hostnames:
+  - {{ tpl (toString $.Values.security.istio.hosts.hostArgoCD) $ | quote }}
+  rules:
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /
+    backendRefs:
+    - name: argo-cd-argocd-server
+      port: 80
+      group: ''
+      kind: Service
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: kiali-route
+  namespace: monitoring
+spec:
+  parentRefs:
+  - name: eshop-gateway
+    group: gateway.networking.k8s.io
+    kind: Gateway
+    namespace: istio-system
+  hostnames:
+  - {{ tpl (toString $.Values.security.istio.hosts.hostKiali) $ | quote }}
+  rules:
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /
+    backendRefs:
+    - name: kiali
+      port: 20001
+      group: ''
+      kind: Service
